@@ -46,7 +46,7 @@ const CreatePost = ({ onPost }) => {
 
   const handleSubmit = () => {
     if (content.trim()) {
-      onPost(content);
+      onPost(content, null); // Pass null for image since image upload isn't implemented yet
       setContent('');
       setIsExpanded(false);
     }
@@ -446,7 +446,7 @@ const SocialFeed = ({ onViewProfile }) => {
     ));
   };
 
-  const handleAddPost = (content, image) => {
+  const handleAddPost = (content, image = null) => {
     const newPost = {
       id: (posts.length + 1).toString(),
       author: {
