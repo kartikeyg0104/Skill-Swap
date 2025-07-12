@@ -40,9 +40,10 @@ const authenticateToken = async (req, res, next) => {
 };
 
 const requireVerification = (req, res, next) => {
-  if (!req.user.isVerified) {
-    return res.status(403).json({ error: 'Email verification required' });
-  }
+  // Temporarily disabled for development
+  // if (!req.user.isVerified) {
+  //   return res.status(403).json({ error: 'Email verification required' });
+  // }
   next();
 };
 

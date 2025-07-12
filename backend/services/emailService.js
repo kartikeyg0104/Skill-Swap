@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer');
 
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
   port: process.env.EMAIL_PORT,
   secure: false,
@@ -9,6 +9,7 @@ const transporter = nodemailer.createTransporter({
     pass: process.env.EMAIL_PASS
   }
 });
+
 
 const sendVerificationEmail = async (email, name, token) => {
   const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${token}`;

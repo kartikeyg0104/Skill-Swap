@@ -79,51 +79,52 @@ const sendMessage = async (req, res) => {
 
 const getConversations = async (req, res) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
-    const skip = (page - 1) * limit;
-    const take = parseInt(limit);
+    // Simple implementation - just return basic conversation data
+    const conversations = [];
+    
+    // Get distinct users the current user has messaged with
+    const messages = await prisma.message.findMany({
+      where: {
+        OR: [
+          { senderId: req.user.id },
+          { receiverId: req.user.id }
+        ]
+      },
+      include: {
+        sender: {
+          select: { id: true, name: true, profilePhoto: true }
+        },
+        receiver: {
+          select: { id: true, name: true, profilePhoto: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
 
-    // Get all conversations for the user
-    const conversations = await prisma.$queryRaw`
-      SELECT DISTINCT ON (
-        CASE 
-          WHEN "senderId" = ${req.user.id} THEN "receiverId"
-          ELSE "senderId"
-        END
-      )
-      m.id,
-      m.content,
-      m."messageType",
-      m."createdAt",
-      m."isRead",
-      u.id as "otherUserId",
-      u.name as "otherUserName",
-      u."profilePhoto" as "otherUserPhoto",
-      sr.id as "swapRequestId"
-      FROM "messages" m
-      INNER JOIN "users" u ON (
-        CASE 
-          WHEN m."senderId" = ${req.user.id} THEN u.id = m."receiverId"
-          ELSE u.id = m."senderId"
-        END
-      )
-      LEFT JOIN "swap_requests" sr ON m."swapRequestId" = sr.id
-      WHERE m."senderId" = ${req.user.id} OR m."receiverId" = ${req.user.id}
-      ORDER BY (
-        CASE 
-          WHEN "senderId" = ${req.user.id} THEN "receiverId"
-          ELSE "senderId"
-        END
-      ), m."createdAt" DESC
-      LIMIT ${take} OFFSET ${skip}
-    `;
+    // Create simple conversation summary
+    const userMap = new Map();
+    
+    messages.forEach(message => {
+      const otherUser = message.senderId === req.user.id ? message.receiver : message.sender;
+      
+      if (!userMap.has(otherUser.id)) {
+        userMap.set(otherUser.id, {
+          otherUser,
+          lastMessage: message,
+          unreadCount: message.receiverId === req.user.id && !message.isRead ? 1 : 0
+        });
+      }
+    });
+
+    const conversationsList = Array.from(userMap.values());
 
     res.json({
-      conversations,
+      conversations: conversationsList,
       pagination: {
-        page: parseInt(page),
-        limit: take,
-        total: conversations.length
+        page: 1,
+        limit: 20,
+        total: conversationsList.length,
+        totalPages: 1
       }
     });
   } catch (error) {

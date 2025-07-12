@@ -1,227 +1,63 @@
-# Skill-Swap Backend
+# Skill-Swap Backend API
 
 A comprehensive skill-sharing platform backend built with Node.js, Express, and Prisma.
 
-## 🚀 Features
+## 🚀 Quick Start
 
-### Core Features
-- **User Authentication & Profile Management**
-  - Multi-modal registration (Email, OAuth)
-  - Profile verification and skill management
-  - Availability settings and privacy controls
+1. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-### Discovery & Search
-- **Smart Search System**
-  - Keyword-based skill search with auto-suggestions
-  - Advanced filters (location, skill level, ratings)
-  - Featured users and skill categories
+2. **Setup environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your database URL and JWT secrets
+   ```
 
-### Swap Management
-- **Request Management**
-  - Create, accept, decline swap requests
-  - Scheduling integration and tracking
-  - Real-time status updates
+3. **Setup database**
+   ```bash
+   npx prisma migrate dev
+   npx prisma generate
+   ```
 
-### Rating & Feedback
-- **Multi-dimensional Rating System**
-  - Overall, teaching quality, reliability, communication
-  - Written reviews with moderation
-  - Feedback analytics
+4. **Start the server**
+   ```bash
+   npm run dev
+   ```
 
-### Gamification
-- **Achievement System**
-  - Automated badge awards
-  - Credit banking system
-  - Leaderboards and progress tracking
-
-### Communication
-- **Messaging & Video**
-  - Secure in-app messaging with file sharing
-  - Video conferencing integration
-  - Session recording capabilities
-
-### Trust & Safety
-- **Verification & Security**
-  - Multi-level verification badges
-  - AI-calculated trust scores
-  - Reporting and dispute resolution
-
-### Social Integration
-- **Social Media Features**
-  - Profile and achievement sharing
-  - Viral referral system
-  - Social login and profile import
-
-### Analytics
-- **Comprehensive Analytics**
-  - Personal dashboards
-  - Platform analytics
-  - Learning path recommendations
-
-### Admin Features
-- **Complete Admin Dashboard**
-  - User management and moderation
-  - Content review system
-  - Real-time monitoring
-
-### Communication Tools
-- **Broadcast Messaging**
-  - Platform-wide announcements
-  - Targeted user notifications
-  - Email campaigns and automation
-  - Push notifications
-
-### Reporting & Analytics
-- **Advanced Reporting**
-  - User activity and engagement reports
-  - Swap analytics and success metrics
-  - Revenue tracking and credit analytics
-  - Feedback sentiment analysis
-  - Custom report generation
-  - CSV/PDF export capabilities
+Server runs on `http://localhost:3001`
 
 ## 🛠️ Tech Stack
 
 - **Runtime**: Node.js
 - **Framework**: Express.js
 - **Database**: PostgreSQL with Prisma ORM
-- **Authentication**: JWT with OAuth integration (Passport.js)
+- **Authentication**: JWT
 - **Security**: Helmet, CORS, Rate limiting
 - **Validation**: Express-validator
-- **File Upload**: Multer (with Cloudinary/Firebase integration)
-- **Email**: Nodemailer
-- **Reports**: JSON2CSV, PDFKit
-- **Real-time**: Socket.io for real-time updates
+- **File Upload**: Multer
 
 ## 📁 Project Structure
 
 ```
 backend/
 ├── controllers/         # Business logic controllers
-│   ├── authController.js
-│   ├── userController.js
-│   ├── skillController.js
-│   ├── swapRequestController.js
-│   ├── ratingController.js
-│   ├── messagingController.js
-│   ├── adminController.js
-│   └── ...
 ├── middleware/          # Custom middleware
-│   ├── auth.js
-│   ├── validation.js
-│   ├── upload.js
-│   └── errorHandler.js
 ├── routes/             # API routes
-│   ├── auth.js
-│   ├── user.js
-│   ├── skills.js
-│   ├── swaps.js
-│   └── ...
 ├── services/           # External services
-│   ├── emailService.js
-│   ├── cloudinaryService.js
-│   └── socketService.js
 ├── prisma/             # Database schema and migrations
-│   ├── schema.prisma
-│   └── migrations/
 ├── uploads/            # File upload directory
 ├── .env               # Environment variables
-├── app.js             # Express app configuration
-└── server.js          # Server entry point
+└── app.js             # Express app configuration
 ```
 
-## 📚 Complete API Documentation
+## 📚 API Documentation
 
-### Authentication & OAuth
+### Base URL
 ```
-POST /api/auth/register              - User registration
-POST /api/auth/login                 - User login  
-POST /api/auth/refresh               - Refresh JWT token
-POST /api/auth/logout                - User logout
-GET  /api/auth/me                    - Get current user
-POST /api/auth/verify-email/:token   - Email verification
-
-# OAuth Routes
-GET  /api/auth/google                - Google OAuth login
-GET  /api/auth/google/callback       - Google OAuth callback
-GET  /api/auth/facebook              - Facebook OAuth login
-GET  /api/auth/facebook/callback     - Facebook OAuth callback
-GET  /api/auth/twitter               - Twitter OAuth login
-GET  /api/auth/twitter/callback      - Twitter OAuth callback
+http://localhost:3001/api
 ```
-
-### User Management (As per requirements)
-```
-GET  /api/users/:id                  - Get public user profile
-PUT  /api/users/:id                  - Update user profile (protected)
-POST /api/users/upload-photo         - Upload profile picture
-GET  /api/users/skills               - Get user's skills
-POST /api/users/skills               - Add new skill
-PUT  /api/users/skills/:id           - Update skill
-DELETE /api/users/skills/:id         - Remove skill
-```
-
-### Swap Request System (As per requirements)
-```
-POST /api/swaps                      - Create swap request
-GET  /api/swaps/sent                 - Get sent swap requests
-GET  /api/swaps/received             - Get received swap requests
-PUT  /api/swaps/:id/accept           - Accept swap request
-PUT  /api/swaps/:id/decline          - Decline swap request
-DELETE /api/swaps/:id                - Cancel swap request
-GET  /api/swaps/:id                  - Get swap details
-PUT  /api/swaps/:id/status           - Update swap status
-```
-
-### Rating & Feedback System (As per requirements)
-```
-POST /api/reviews                    - Create review after swap
-GET  /api/reviews/user/:userId       - Get reviews for user
-GET  /api/reviews/swap/:swapId       - Get reviews for swap
-PUT  /api/reviews/:id                - Update review
-DELETE /api/reviews/:id              - Delete review
-POST /api/reviews/:id/helpful        - Mark review helpful
-```
-
-### Admin Panel (As per requirements)
-```
-GET  /api/admin/users                - View all users
-PUT  /api/admin/users/:id/ban        - Ban user
-PUT  /api/admin/users/:id/unban      - Unban user
-GET  /api/admin/swaps                - Monitor all swaps
-GET  /api/admin/reports              - Download CSV reports
-GET  /api/admin/stats                - Platform statistics
-POST /api/admin/broadcast            - Send platform announcements
-```
-
-### Discovery & Search
-```
-GET /api/discovery/search            - Search users/skills
-GET /api/discovery/suggestions       - Get skill suggestions
-GET /api/discovery/featured          - Get featured users
-GET /api/discovery/categories        - Get skill categories
-```
-
-### Social Media Integration
-```
-POST /api/social/share/profile       - Share profile on social media
-POST /api/social/share/skill         - Share specific skill
-POST /api/social/import              - Import social media profile
-GET  /api/social/connections         - Find social connections
-```
-
-### Real-time Features (Socket.io)
-```
-WebSocket Events:
-- swap_request_received             - New swap request notification
-- swap_status_updated              - Swap status change
-- message_received                 - New message notification
-- user_online                      - User online status
-```
-
-## 📝 API Request/Response Examples
-
-Below are examples of request payloads and responses for key endpoints to facilitate frontend integration.
 
 ### Authentication
 
@@ -233,10 +69,9 @@ POST /api/auth/register
 Request:
 ```json
 {
-  "email": "user@example.com",
+  "name": "John Doe",
+  "email": "john@example.com",
   "password": "securePassword123",
-  "firstName": "John",
-  "lastName": "Doe",
   "location": "New York, USA"
 }
 ```
@@ -244,16 +79,20 @@ Request:
 Response (201 Created):
 ```json
 {
-  "success": true,
-  "message": "Registration successful. Please verify your email.",
+  "message": "User registered successfully. Please check your email for verification.",
   "user": {
-    "id": "usr_123456",
-    "email": "user@example.com",
-    "firstName": "John",
-    "lastName": "Doe",
+    "id": 1,
+    "name": "John Doe",
+    "email": "john@example.com",
+    "location": "New York, USA",
     "isVerified": false,
-    "createdAt": "2023-07-15T14:30:45.123Z"
-  }
+    "isPublic": true,
+    "status": "ACTIVE",
+    "createdAt": "2024-01-15T10:30:00.000Z"
+  },
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "verificationToken": "abc123def456..."
 }
 ```
 
@@ -265,7 +104,7 @@ POST /api/auth/login
 Request:
 ```json
 {
-  "email": "user@example.com",
+  "email": "john@example.com",
   "password": "securePassword123"
 }
 ```
@@ -273,18 +112,29 @@ Request:
 Response (200 OK):
 ```json
 {
-  "success": true,
   "message": "Login successful",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
-    "id": "usr_123456",
-    "firstName": "John",
-    "lastName": "Doe",
-    "email": "user@example.com",
+    "id": 1,
+    "name": "John Doe",
+    "email": "john@example.com",
+    "location": "New York, USA",
     "isVerified": true,
-    "role": "USER"
-  }
+    "status": "ACTIVE",
+    "skillsOffered": [],
+    "skillsWanted": [],
+    "availability": [],
+    "reputation": {
+      "totalPoints": 0,
+      "level": 1
+    },
+    "credits": {
+      "balance": 10,
+      "totalEarned": 0,
+      "totalSpent": 0
+    }
+  },
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
@@ -292,12 +142,521 @@ Response (200 OK):
 
 **Get User Profile**
 ```
-GET /api/users/:id
+GET /api/users/profile
+Authorization: Bearer <token>
 ```
 
 Response (200 OK):
 ```json
 {
+  "id": 1,
+  "name": "John Doe",
+  "email": "john@example.com",
+  "bio": "Experienced developer passionate about sharing knowledge",
+  "location": "New York, USA",
+  "isVerified": true,
+  "skillsOffered": [
+    {
+      "id": 1,
+      "skillName": "JavaScript",
+      "category": "Programming",
+      "level": "ADVANCED",
+      "description": "Full-stack JavaScript development"
+    }
+  ],
+  "skillsWanted": [
+    {
+      "id": 1,
+      "skillName": "Python",
+      "priority": "HIGH",
+      "targetLevel": "INTERMEDIATE",
+      "description": "Data science and machine learning"
+    }
+  ],
+  "reputation": {
+    "totalPoints": 150,
+    "level": 2,
+    "averageRating": 4.8
+  },
+  "credits": {
+    "balance": 25,
+    "totalEarned": 50,
+    "totalSpent": 25
+  }
+}
+```
+
+**Update User Profile**
+```
+PUT /api/users/profile
+Authorization: Bearer <token>
+```
+
+Request:
+```json
+{
+  "name": "John Smith",
+  "bio": "Senior developer with 10+ years experience",
+  "location": "San Francisco, CA",
+  "isPublic": true
+}
+```
+
+Response (200 OK):
+```json
+{
+  "message": "Profile updated successfully",
+  "user": {
+    "id": 1,
+    "name": "John Smith",
+    "bio": "Senior developer with 10+ years experience",
+    "location": "San Francisco, CA",
+    "isPublic": true,
+    "updatedAt": "2024-01-15T11:00:00.000Z"
+  }
+}
+```
+
+### Skills Management
+
+**Add Skill Offered**
+```
+POST /api/skills/offered
+Authorization: Bearer <token>
+```
+
+Request:
+```json
+{
+  "skillName": "React.js",
+  "category": "Web Development",
+  "level": "ADVANCED",
+  "description": "Modern React development with hooks and context"
+}
+```
+
+Response (201 Created):
+```json
+{
+  "message": "Skill added successfully",
+  "skill": {
+    "id": 2,
+    "skillName": "React.js",
+    "category": "Web Development",
+    "level": "ADVANCED",
+    "description": "Modern React development with hooks and context",
+    "userId": 1,
+    "createdAt": "2024-01-15T11:15:00.000Z"
+  }
+}
+```
+
+**Add Skill Wanted**
+```
+POST /api/skills/wanted
+Authorization: Bearer <token>
+```
+
+Request:
+```json
+{
+  "skillName": "Docker",
+  "priority": "HIGH",
+  "targetLevel": "INTERMEDIATE",
+  "description": "Container orchestration and deployment"
+}
+```
+
+Response (201 Created):
+```json
+{
+  "message": "Skill wanted added successfully",
+  "skill": {
+    "id": 2,
+    "skillName": "Docker",
+    "priority": "HIGH",
+    "targetLevel": "INTERMEDIATE",
+    "description": "Container orchestration and deployment",
+    "userId": 1,
+    "createdAt": "2024-01-15T11:20:00.000Z"
+  }
+}
+```
+
+### Swap Requests
+
+**Create Swap Request**
+```
+POST /api/swap-requests
+Authorization: Bearer <token>
+```
+
+Request:
+```json
+{
+  "receiverId": 2,
+  "skillOffered": "JavaScript",
+  "skillRequested": "Python",
+  "message": "Hi! I'd love to learn Python from you in exchange for JavaScript tutoring.",
+  "proposedSchedule": "2024-01-20T14:00:00Z",
+  "format": "ONLINE",
+  "duration": 60,
+  "priority": "HIGH"
+}
+```
+
+Response (201 Created):
+```json
+{
+  "message": "Swap request created successfully",
+  "swapRequest": {
+    "id": 1,
+    "requesterId": 1,
+    "receiverId": 2,
+    "skillOffered": "JavaScript",
+    "skillRequested": "Python",
+    "message": "Hi! I'd love to learn Python from you in exchange for JavaScript tutoring.",
+    "proposedSchedule": "2024-01-20T14:00:00.000Z",
+    "format": "ONLINE",
+    "duration": 60,
+    "priority": "HIGH",
+    "status": "PENDING",
+    "expiresAt": "2024-01-22T11:30:00.000Z",
+    "requester": {
+      "id": 1,
+      "name": "John Doe",
+      "profilePhoto": null
+    },
+    "receiver": {
+      "id": 2,
+      "name": "Jane Smith",
+      "profilePhoto": null
+    },
+    "createdAt": "2024-01-15T11:30:00.000Z"
+  }
+}
+```
+
+**Get Swap Requests**
+```
+GET /api/swap-requests?type=received&status=PENDING
+Authorization: Bearer <token>
+```
+
+Response (200 OK):
+```json
+{
+  "swapRequests": [
+    {
+      "id": 1,
+      "skillOffered": "Python",
+      "skillRequested": "JavaScript",
+      "message": "Would love to teach Python!",
+      "status": "PENDING",
+      "format": "ONLINE",
+      "duration": 60,
+      "proposedSchedule": "2024-01-20T14:00:00.000Z",
+      "requester": {
+        "id": 2,
+        "name": "Jane Smith",
+        "profilePhoto": null
+      },
+      "createdAt": "2024-01-15T10:00:00.000Z"
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 1,
+    "totalCount": 1,
+    "hasNextPage": false
+  }
+}
+```
+
+**Accept Swap Request**
+```
+PUT /api/swap-requests/1/accept
+Authorization: Bearer <token>
+```
+
+Response (200 OK):
+```json
+{
+  "message": "Swap request accepted successfully",
+  "swapRequest": {
+    "id": 1,
+    "status": "ACCEPTED",
+    "acceptedAt": "2024-01-15T12:00:00.000Z"
+  }
+}
+```
+
+### User Availability
+
+**Set Availability**
+```
+POST /api/users/availability
+Authorization: Bearer <token>
+```
+
+Request:
+```json
+{
+  "dayOfWeek": "MONDAY",
+  "startTime": "09:00",
+  "endTime": "17:00",
+  "timezone": "America/New_York"
+}
+```
+
+Response (201 Created):
+```json
+{
+  "message": "Availability set successfully",
+  "availability": {
+    "id": 1,
+    "userId": 1,
+    "dayOfWeek": "MONDAY",
+    "startTime": "09:00:00",
+    "endTime": "17:00:00",
+    "timezone": "America/New_York",
+    "isActive": true,
+    "createdAt": "2024-01-15T12:15:00.000Z"
+  }
+}
+```
+
+### Messaging
+
+**Send Message**
+```
+POST /api/messages
+Authorization: Bearer <token>
+```
+
+Request:
+```json
+{
+  "receiverId": 2,
+  "swapRequestId": 1,
+  "content": "Hi! Looking forward to our skill swap session.",
+  "messageType": "TEXT"
+}
+```
+
+Response (201 Created):
+```json
+{
+  "message": "Message sent successfully",
+  "data": {
+    "id": 1,
+    "senderId": 1,
+    "receiverId": 2,
+    "swapRequestId": 1,
+    "content": "Hi! Looking forward to our skill swap session.",
+    "messageType": "TEXT",
+    "isRead": false,
+    "sender": {
+      "id": 1,
+      "name": "John Doe",
+      "profilePhoto": null
+    },
+    "receiver": {
+      "id": 2,
+      "name": "Jane Smith",
+      "profilePhoto": null
+    },
+    "createdAt": "2024-01-15T12:30:00.000Z"
+  }
+}
+```
+
+**Get Conversations**
+```
+GET /api/messages/conversations
+Authorization: Bearer <token>
+```
+
+Response (200 OK):
+```json
+{
+  "conversations": [
+    {
+      "userId": 2,
+      "userName": "Jane Smith",
+      "userPhoto": null,
+      "lastMessage": "Hi! Looking forward to our skill swap session.",
+      "lastMessageTime": "2024-01-15T12:30:00.000Z",
+      "unreadCount": 0
+    }
+  ]
+}
+```
+
+### Reviews
+
+**Create Review**
+```
+POST /api/reviews/swap-requests/1
+Authorization: Bearer <token>
+```
+
+Request:
+```json
+{
+  "revieweeId": 2,
+  "overall": 5,
+  "teachingQuality": 5,
+  "reliability": 4,
+  "communication": 5,
+  "review": "Excellent teacher! Very patient and knowledgeable.",
+  "isPublic": true
+}
+```
+
+Response (201 Created):
+```json
+{
+  "message": "Review created successfully",
+  "review": {
+    "id": 1,
+    "reviewerId": 1,
+    "revieweeId": 2,
+    "swapRequestId": 1,
+    "overall": 5,
+    "teachingQuality": 5,
+    "reliability": 4,
+    "communication": 5,
+    "review": "Excellent teacher! Very patient and knowledgeable.",
+    "isPublic": true,
+    "createdAt": "2024-01-15T13:00:00.000Z"
+  }
+}
+```
+
+### Trust & Safety
+
+**Request Verification**
+```
+POST /api/trust-safety/verify
+Authorization: Bearer <token>
+```
+
+Request:
+```json
+{
+  "type": "identity",
+  "documents": ["passport", "utility_bill"]
+}
+```
+
+Response (201 Created):
+```json
+{
+  "message": "Verification request submitted and approved successfully",
+  "status": "APPROVED",
+  "type": "identity",
+  "approvedAt": "2024-01-15T13:15:00.000Z"
+}
+```
+
+**Get Verification Status**
+```
+GET /api/trust-safety/verification-status
+Authorization: Bearer <token>
+```
+
+Response (200 OK):
+```json
+{
+  "isVerified": true,
+  "verificationDate": "2024-01-15T13:15:00.000Z",
+  "status": "VERIFIED",
+  "message": "Your account is verified"
+}
+```
+
+## 🔧 Error Responses
+
+All endpoints return consistent error responses:
+
+```json
+{
+  "error": "Error message describing what went wrong"
+}
+```
+
+Common HTTP status codes:
+- `400` - Bad Request (validation errors)
+- `401` - Unauthorized (missing or invalid token)
+- `403` - Forbidden (insufficient permissions)
+- `404` - Not Found (resource doesn't exist)
+- `500` - Internal Server Error
+
+## 🧪 Testing
+
+Use the following curl commands to test the API:
+
+### Health Check
+```bash
+curl http://localhost:3001/health
+```
+
+### Register User
+```bash
+curl -X POST http://localhost:3001/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Test User",
+    "email": "test@example.com",
+    "password": "password123",
+    "location": "New York"
+  }'
+```
+
+### Login
+```bash
+curl -X POST http://localhost:3001/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "password": "password123"
+  }'
+```
+
+### Create Swap Request (with token)
+```bash
+curl -X POST http://localhost:3001/api/swap-requests \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -d '{
+    "receiverId": 2,
+    "skillOffered": "JavaScript",
+    "skillRequested": "Python",
+    "message": "Test swap request",
+    "format": "ONLINE",
+    "duration": 60
+  }'
+```
+
+## 🔄 Development Notes
+
+- Email verification is disabled in development mode
+- Server runs on port 3001 (configurable via .env)
+- JWT tokens expire in 1 hour (configurable)
+- File uploads are stored in the `uploads/` directory
+- Database migrations are in `prisma/migrations/`
+
+## 🚀 Deployment
+
+1. Set production environment variables
+2. Run database migrations: `npx prisma migrate deploy`
+3. Build the application: `npm run build`
+4. Start the server: `npm start`
+
+## 📄 License
+
+This project is licensed under the MIT License.
   "success": true,
   "user": {
     "id": "usr_123456",

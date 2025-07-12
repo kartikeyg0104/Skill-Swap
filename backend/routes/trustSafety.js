@@ -18,7 +18,7 @@ router.post('/endorse', requireVerification, validateEndorsement, trustSafetyCon
 router.post('/report', validateReport, trustSafetyController.reportUser);
 
 // Trust score routes
-router.get('/trust-score/:userId?', trustSafetyController.calculateTrustScore);
+router.get('/trust-score/:userId', trustSafetyController.calculateTrustScore);
 
 // Dispute routes
 router.get('/disputes', trustSafetyController.getDisputes);
