@@ -24,6 +24,8 @@ const adminRoutes = require('./routes/admin');
 const communicationRoutes = require('./routes/communication');
 const reportingRoutes = require('./routes/reporting');
 const skillRoutes = require('./routes/skills');
+const calendarRoutes = require('./routes/calendar');
+const simpleMeetingRoutes = require('./routes/simpleMeetings');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -83,6 +85,8 @@ app.use('/api/social', socialRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/communication', communicationRoutes);
 app.use('/api/reporting', reportingRoutes);
+app.use('/api/calendar', calendarRoutes);
+app.use('/api/meetings', simpleMeetingRoutes);
 
 // Error handling middleware
 app.use(errorHandler);

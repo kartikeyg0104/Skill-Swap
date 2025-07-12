@@ -1,6 +1,85 @@
 const { PrismaClient } = require('@prisma/client');
+const { scheduleCalendarEvent } = require('../services/googleCalendarService');
+const nodemailer = require('nodemailer');
 
 const prisma = new PrismaClient();
+
+// Send meeting invite via email
+const sendMeetingInvite = async (meetingData) => {
+  try {
+    const transporter = nodemailer.createTransporter({
+      host: process.env.EMAIL_HOST,
+      port: process.env.EMAIL_PORT,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">🎉 You're Invited to a Skill Swap Meeting!</h2>
+        
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #007bff; margin-top: 0;">${meetingData.title}</h3>
+          <p style="color: #666; margin: 10px 0;">
+            <strong>Organized by:</strong> ${meetingData.organizerName}
+          </p>
+          <p style="color: #666; margin: 10px 0;">
+            <strong>Description:</strong> ${meetingData.description}
+          </p>
+          ${meetingData.dateTime ? `
+            <p style="color: #666; margin: 10px 0;">
+              <strong>Date & Time:</strong> ${new Date(meetingData.dateTime).toLocaleString()}
+            </p>
+          ` : ''}
+          <p style="color: #666; margin: 10px 0;">
+            <strong>Duration:</strong> ${meetingData.duration} minutes
+          </p>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${meetingData.meetingLink}" 
+             style="background-color: #007bff; color: white; padding: 15px 30px; 
+                    text-decoration: none; border-radius: 5px; font-weight: bold; 
+                    display: inline-block;">
+            🎥 Join Google Meet
+          </a>
+        </div>
+
+        <div style="background-color: #e9ecef; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 0; color: #666; font-size: 14px;">
+            <strong>Meeting Link:</strong> 
+            <a href="${meetingData.meetingLink}" style="color: #007bff;">
+              ${meetingData.meetingLink}
+            </a>
+          </p>
+        </div>
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+          <p style="color: #666; font-size: 12px; margin: 0;">
+            This meeting was scheduled through Skill Swap platform.
+          </p>
+        </div>
+      </div>
+    `;
+
+    const mailOptions = {
+      from: `"${meetingData.organizerName}" <${process.env.EMAIL_FROM}>`,
+      to: meetingData.attendeeEmail,
+      subject: `📅 Meeting Invitation: ${meetingData.title}`,
+      html: emailHtml
+    };
+
+    await transporter.sendMail(mailOptions);
+    return true;
+
+  } catch (error) {
+    console.error('Email sending error:', error);
+    return false;
+  }
+};
 
 const createSwapRequest = async (req, res) => {
   try {
@@ -475,12 +554,13 @@ const getReceivedSwapRequests = async (req, res) => {
 const acceptSwapRequest = async (req, res) => {
   try {
     const { id } = req.params;
-    const { message } = req.body;
+    const { message, scheduleMeeting = false, meetingLink, dateTime, duration = 60 } = req.body;
 
     const swapRequest = await prisma.swapRequest.findUnique({
       where: { id: parseInt(id) },
       include: {
-        requester: { select: { id: true, name: true } }
+        requester: { select: { id: true, name: true, email: true } },
+        receiver: { select: { id: true, name: true, email: true } }
       }
     });
 
@@ -525,9 +605,62 @@ const acceptSwapRequest = async (req, res) => {
       });
     }
 
+    let sessionData = null;
+    
+    // Schedule simple meeting if requested
+    if (scheduleMeeting && (meetingLink || dateTime)) {
+      try {
+        // Create simple meeting record
+        const meeting = await prisma.simpleMeeting.create({
+          data: {
+            organizerId: req.user.id,
+            attendeeEmail: swapRequest.requester.email,
+            attendeeName: swapRequest.requester.name,
+            title: `Skill Swap: ${swapRequest.skillOffered} ↔ ${swapRequest.skillRequested}`,
+            description: `Skill swap session between ${swapRequest.requester.name} and ${swapRequest.receiver.name}`,
+            meetingLink: meetingLink || `https://meet.google.com/new`, // Default to new meeting
+            scheduledDateTime: dateTime ? new Date(dateTime) : null,
+            duration: duration,
+            status: 'SCHEDULED'
+          }
+        });
+
+        sessionData = meeting;
+
+        // Send meeting invite email
+        await sendMeetingInvite({
+          organizerName: req.user.name,
+          organizerEmail: req.user.email,
+          attendeeEmail: swapRequest.requester.email,
+          attendeeName: swapRequest.requester.name,
+          title: meeting.title,
+          description: meeting.description,
+          meetingLink: meeting.meetingLink,
+          dateTime: dateTime,
+          duration: duration
+        });
+
+        // Send notification about the scheduled meeting
+        await prisma.notification.create({
+          data: {
+            userId: swapRequest.requesterId,
+            title: 'Meeting Scheduled',
+            content: `Your skill swap meeting has been scheduled! Check your email for the Google Meet link.`,
+            type: 'MEETING_SCHEDULED',
+            actionUrl: `/meetings/${meeting.id}`
+          }
+        });
+
+      } catch (meetingError) {
+        console.error('Meeting scheduling error:', meetingError);
+        // Don't fail the acceptance, just log the error
+      }
+    }
+
     res.json({
       message: 'Swap request accepted successfully',
-      swapRequest: updatedRequest
+      swapRequest: updatedRequest,
+      session: sessionData
     });
   } catch (error) {
     console.error('Accept swap request error:', error);

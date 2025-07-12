@@ -561,7 +561,276 @@ Response (201 Created):
 }
 ```
 
-### Trust & Safety
+## 📊 Analytics
+
+**Get Personal Dashboard**
+```
+GET /api/analytics/dashboard
+Authorization: Bearer <token>
+```
+
+**Get Performance Metrics**
+```
+GET /api/analytics/performance
+Authorization: Bearer <token>
+```
+
+**Get Learning Path**
+```
+GET /api/analytics/learning-path
+Authorization: Bearer <token>
+```
+
+**Get Skill Analytics**
+```
+GET /api/analytics/skills
+Authorization: Bearer <token>
+```
+
+## 🎮 Gamification
+
+**Get User Achievements**
+```
+GET /api/gamification/achievements
+Authorization: Bearer <token>
+```
+
+**Get Another User's Achievements**
+```
+GET /api/gamification/achievements/:userId
+Authorization: Bearer <token>
+```
+
+**Get Credit Balance**
+```
+GET /api/gamification/credits
+Authorization: Bearer <token>
+```
+
+Response (200 OK):
+```json
+{
+  "balance": 150,
+  "totalEarned": 500,
+  "totalSpent": 350,
+  "transactions": [
+    {
+      "type": "EARNED",
+      "amount": 50,
+      "description": "Completed skill swap session",
+      "date": "2024-01-15T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+**Transfer Credits**
+```
+POST /api/gamification/credits/transfer
+Authorization: Bearer <token>
+```
+
+Request:
+```json
+{
+  "recipientId": 2,
+  "amount": 25,
+  "reason": "Payment for tutoring session"
+}
+```
+
+**Get Progress Stats**
+```
+GET /api/gamification/progress
+Authorization: Bearer <token>
+```
+
+## 🏆 Leaderboard
+
+**Get Global Leaderboard**
+```
+GET /api/leaderboard
+```
+
+Response (200 OK):
+```json
+{
+  "leaderboard": [
+    {
+      "rank": 1,
+      "userId": 15,
+      "name": "Sarah Johnson",
+      "profilePhoto": null,
+      "totalPoints": 2500,
+      "level": 8,
+      "completedSwaps": 45,
+      "badge": "Expert Teacher"
+    }
+  ]
+}
+```
+
+**Get Skill Leaderboard**
+```
+GET /api/leaderboard/skills
+```
+
+**Get Community Stats**
+```
+GET /api/leaderboard/community-stats
+```
+
+**Get My Rank**
+```
+GET /api/leaderboard/my-rank
+Authorization: Bearer <token>
+```
+
+## 🔧 Admin Management
+
+**Get Admin Dashboard**
+```
+GET /api/admin/dashboard
+Authorization: Bearer <admin-token>
+```
+
+**Get Users List**
+```
+GET /api/admin/users
+Authorization: Bearer <admin-token>
+```
+
+**Update User Status**
+```
+PUT /api/admin/users/:userId/status
+Authorization: Bearer <admin-token>
+```
+
+Request:
+```json
+{
+  "status": "SUSPENDED",
+  "reason": "Violation of terms of service"
+}
+```
+
+**Get Reports**
+```
+GET /api/admin/reports
+Authorization: Bearer <admin-token>
+```
+
+**Resolve Report**
+```
+PUT /api/admin/reports/:reportId/resolve
+Authorization: Bearer <admin-token>
+```
+
+**Get Swap Monitoring**
+```
+GET /api/admin/swaps
+Authorization: Bearer <admin-token>
+```
+
+**Get Content Moderation**
+```
+GET /api/admin/content
+Authorization: Bearer <admin-token>
+```
+
+**Moderate Content**
+```
+POST /api/admin/content/moderate
+Authorization: Bearer <admin-token>
+```
+
+**Get Admin Actions**
+```
+GET /api/admin/actions
+Authorization: Bearer <admin-token>
+```
+
+## 📡 Communication (Admin)
+
+**Create Broadcast Message**
+```
+POST /api/communication/broadcast
+Authorization: Bearer <admin-token>
+```
+
+Request:
+```json
+{
+  "title": "Platform Update",
+  "content": "New features have been added to the platform",
+  "target": "ALL_USERS",
+  "priority": "HIGH"
+}
+```
+
+**Send Targeted Notification**
+```
+POST /api/communication/notifications/targeted
+Authorization: Bearer <admin-token>
+```
+
+**Create Email Campaign**
+```
+POST /api/communication/email/campaign
+Authorization: Bearer <admin-token>
+```
+
+**Send Push Notification**
+```
+POST /api/communication/push
+Authorization: Bearer <admin-token>
+```
+
+**Get Communication History**
+```
+GET /api/communication/history
+Authorization: Bearer <admin-token>
+```
+
+**Get Communication Stats**
+```
+GET /api/communication/stats
+Authorization: Bearer <admin-token>
+```
+
+## 📈 Reporting (Admin)
+
+**Get User Activity Report**
+```
+GET /api/reporting/user-activity
+Authorization: Bearer <admin-token>
+```
+
+**Get Swap Analytics Report**
+```
+GET /api/reporting/swap-analytics
+Authorization: Bearer <admin-token>
+```
+
+**Get Revenue Tracking Report**
+```
+GET /api/reporting/revenue-tracking
+Authorization: Bearer <admin-token>
+```
+
+**Get Feedback Analysis Report**
+```
+GET /api/reporting/feedback-analysis
+Authorization: Bearer <admin-token>
+```
+
+**Generate Custom Report**
+```
+POST /api/reporting/custom
+Authorization: Bearer <admin-token>
+```
+
+## 🛡️ Trust & Safety
 
 **Request Verification**
 ```
@@ -577,904 +846,274 @@ Request:
 }
 ```
 
-Response (201 Created):
-```json
-{
-  "message": "Verification request submitted and approved successfully",
-  "status": "APPROVED",
-  "type": "identity",
-  "approvedAt": "2024-01-15T13:15:00.000Z"
-}
-```
-
 **Get Verification Status**
 ```
 GET /api/trust-safety/verification-status
 Authorization: Bearer <token>
 ```
 
-Response (200 OK):
-```json
-{
-  "isVerified": true,
-  "verificationDate": "2024-01-15T13:15:00.000Z",
-  "status": "VERIFIED",
-  "message": "Your account is verified"
-}
+**Endorse Skill**
 ```
-
-### Social Community Features
-
-**Create Post**
-```
-POST /api/social/posts
+POST /api/trust-safety/endorse
 Authorization: Bearer <token>
 ```
 
 Request:
 ```json
 {
-  "content": "Just joined Skill Swap! Looking forward to learning and sharing knowledge. #SkillSwap #Learning #Community",
-  "hashtags": ["SkillSwap", "Learning", "Community"]
+  "userId": 2,
+  "skillId": 5,
+  "endorsementText": "Excellent React developer with deep knowledge"
 }
 ```
 
-Response (201 Created):
-```json
-{
-  "message": "Post created successfully",
-  "post": {
-    "id": 1,
-    "authorId": 3,
-    "content": "Just joined Skill Swap! Looking forward to learning and sharing knowledge. #SkillSwap #Learning #Community",
-    "imageUrl": null,
-    "hashtags": ["SkillSwap", "Learning", "Community"],
-    "isPublic": true,
-    "createdAt": "2024-01-15T07:46:03.969Z",
-    "author": {
-      "id": 3,
-      "name": "Test User",
-      "profilePhoto": null,
-      "isVerified": false
-    },
-    "likes": 0,
-    "comments": 0,
-    "shares": 0,
-    "liked": false,
-    "bookmarked": false
-  }
-}
+**Report User**
 ```
-
-**Get Public Feed**
-```
-GET /api/social/posts/public?page=1&limit=10
-Authorization: Bearer <token>
-```
-
-Response (200 OK):
-```json
-{
-  "posts": [
-    {
-      "id": 1,
-      "content": "Just joined Skill Swap! Looking forward to learning and sharing knowledge. #SkillSwap #Learning #Community",
-      "hashtags": ["SkillSwap", "Learning", "Community"],
-      "author": {
-        "id": 3,
-        "name": "Test User",
-        "profilePhoto": null,
-        "isVerified": false
-      },
-      "likes": 1,
-      "comments": 1,
-      "shares": 0,
-      "liked": true,
-      "bookmarked": false,
-      "timestamp": "2h",
-      "createdAt": "2024-01-15T07:46:03.969Z"
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 10,
-    "hasMore": false
-  }
-}
-```
-
-**Like/Unlike Post**
-```
-POST /api/social/posts/:postId/like
-Authorization: Bearer <token>
-```
-
-Response (200 OK):
-```json
-{
-  "message": "Post liked",
-  "liked": true,
-  "likesCount": 1
-}
-```
-
-**Add Comment**
-```
-POST /api/social/posts/:postId/comments
+POST /api/trust-safety/report
 Authorization: Bearer <token>
 ```
 
 Request:
 ```json
 {
-  "content": "Welcome to the community! Looking forward to connecting with you."
+  "reportedUserId": 3,
+  "reason": "INAPPROPRIATE_BEHAVIOR",
+  "description": "User was unprofessional during our session"
 }
 ```
 
-Response (201 Created):
-```json
-{
-  "message": "Comment added successfully",
-  "comment": {
-    "id": 1,
-    "postId": 1,
-    "authorId": 3,
-    "content": "Welcome to the community! Looking forward to connecting with you.",
-    "author": {
-      "id": 3,
-      "name": "Test User",
-      "profilePhoto": null
-    },
-    "timestamp": "now",
-    "createdAt": "2024-01-15T07:48:04.957Z"
-  }
-}
+**Get Trust Score**
 ```
-
-**Follow/Unfollow User**
-```
-POST /api/social/users/:userId/follow
+GET /api/trust-safety/trust-score/:userId
 Authorization: Bearer <token>
 ```
 
-Response (200 OK):
-```json
-{
-  "message": "User followed",
-  "isFollowing": true,
-  "followersCount": 1,
-  "followingCount": 5
-}
+**Get Disputes**
 ```
-
-**Get User Social Stats**
-```
-GET /api/social/users/:userId/stats
+GET /api/trust-safety/disputes
 Authorization: Bearer <token>
 ```
 
-Response (200 OK):
-```json
-{
-  "postsCount": 15,
-  "followersCount": 42,
-  "followingCount": 28,
-  "isFollowing": true
-}
+**Create Dispute**
 ```
-
-**Get Trending Topics**
-```
-GET /api/social/trending
+POST /api/trust-safety/disputes
 Authorization: Bearer <token>
 ```
 
-Response (200 OK):
-```json
-{
-  "topics": [
-    {
-      "tag": "SkillSwap",
-      "posts": "1 posts"
-    },
-    {
-      "tag": "Community",
-      "posts": "1 posts"
-    },
-    {
-      "tag": "Learning",
-      "posts": "1 posts"
-    }
-  ]
-}
-```
+## 📝 Additional Endpoints
 
-**Get Suggested Users**
+### Calendar Integration (OAuth)
+
+**Initiate Google Auth**
 ```
-GET /api/social/suggested-users
+GET /api/calendar/auth
 Authorization: Bearer <token>
 ```
 
-Response (200 OK):
-```json
-{
-  "suggestedUsers": [
-    {
-      "id": 5,
-      "name": "Sarah Johnson",
-      "profilePhoto": null,
-      "bio": "UX Designer passionate about learning new technologies",
-      "skillsOffered": [
-        {"skillName": "UI/UX Design"},
-        {"skillName": "Figma"},
-        {"skillName": "User Research"}
-      ],
-      "mutualConnections": 0,
-      "followersCount": 12,
-      "followingCount": 8
-    }
-  ]
-}
+**Get Connection Status**
 ```
-
-### Enhanced Discovery
-
-**Get Users for Discovery**
-```
-GET /api/discovery/users?search=javascript&location=new%20york&page=1&limit=12
+GET /api/calendar/connection
 Authorization: Bearer <token>
 ```
 
-Response (200 OK):
-```json
-{
-  "users": [
-    {
-      "id": 1,
-      "name": "Updated Test User",
-      "location": "San Francisco, CA",
-      "bio": "I am a skilled developer looking to swap knowledge",
-      "profilePhoto": null,
-      "isVerified": true,
-      "rating": 4.8,
-      "reviewCount": 15,
-      "completedSwaps": 12,
-      "skills": ["JavaScript", "React", "Node.js"],
-      "skillsDetailed": [
-        {
-          "skillName": "JavaScript",
-          "level": "ADVANCED",
-          "category": "Technology"
-        }
-      ],
-      "seeking": ["Python", "Machine Learning"],
-      "seekingDetailed": [
-        {
-          "skillName": "Python",
-          "priority": "HIGH",
-          "targetLevel": "INTERMEDIATE"
-        }
-      ],
-      "memberSince": "2024-01-12T06:01:19.844Z"
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 12,
-    "total": 1,
-    "totalPages": 1,
-    "hasMore": false
-  }
-}
+**Schedule Meeting with Google Calendar**
+```
+POST /api/calendar/schedule
+Authorization: Bearer <token>
 ```
 
-**Get Popular Categories**
+**Update Session**
 ```
-GET /api/discovery/categories
-```
-
-Response (200 OK):
-```json
-{
-  "categories": [
-    {
-      "name": "Technology",
-      "count": 15
-    },
-    {
-      "name": "Design",
-      "count": 8
-    },
-    {
-      "name": "Business",
-      "count": 5
-    }
-  ]
-}
+PUT /api/calendar/session/:sessionId
+Authorization: Bearer <token>
 ```
 
-## 🔧 Error Responses
-
-All endpoints return consistent error responses:
-
-```json
-{
-  "error": "Error message describing what went wrong"
-}
+**Cancel Session**
+```
+DELETE /api/calendar/session/:sessionId
+Authorization: Bearer <token>
 ```
 
-Common HTTP status codes:
-- `400` - Bad Request (validation errors)
-- `401` - Unauthorized (missing or invalid token)
-- `403` - Forbidden (insufficient permissions)
-- `404` - Not Found (resource doesn't exist)
-- `500` - Internal Server Error
+### Auth Endpoints
 
-## 🧪 Testing
-
-Use the following curl commands to test the API:
-
-### Health Check
-```bash
-curl http://localhost:3001/health
+**Refresh Token**
 ```
-
-### Register User
-```bash
-curl -X POST http://localhost:3001/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Test User",
-    "email": "test@example.com",
-    "password": "password123",
-    "location": "New York"
-  }'
-```
-
-### Login
-```bash
-curl -X POST http://localhost:3001/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "password": "password123"
-  }'
-```
-
-### Create Swap Request (with token)
-```bash
-curl -X POST http://localhost:3001/api/swap-requests \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
-  -d '{
-    "receiverId": 2,
-    "skillOffered": "JavaScript",
-    "skillRequested": "Python",
-    "message": "Test swap request",
-    "format": "ONLINE",
-    "duration": 60
-  }'
-```
-
-## 🔄 Development Notes
-
-- Email verification is disabled in development mode
-- Server runs on port 3001 (configurable via .env)
-- JWT tokens expire in 1 hour (configurable)
-- File uploads are stored in the `uploads/` directory
-- Database migrations are in `prisma/migrations/`
-
-## 🚀 Deployment
-
-1. Set production environment variables
-2. Run database migrations: `npx prisma migrate deploy`
-3. Build the application: `npm run build`
-4. Start the server: `npm start`
-
-## 📄 License
-
-This project is licensed under the MIT License.
-  "success": true,
-  "user": {
-    "id": "usr_123456",
-    "firstName": "John",
-    "lastName": "Doe",
-    "bio": "Passionate software developer with 5 years experience",
-    "location": "New York, USA",
-    "profilePicture": "https://cloudinary.com/skillswap/profiles/user123.jpg",
-    "averageRating": 4.8,
-    "skills": [
-      {
-        "id": "skl_789012",
-        "name": "JavaScript Programming",
-        "category": "TECHNOLOGY",
-        "level": "ADVANCED",
-        "description": "Modern JavaScript including ES6+ features"
-      },
-      {
-        "id": "skl_789013",
-        "name": "Piano",
-        "category": "MUSIC",
-        "level": "INTERMEDIATE",
-        "description": "Classical and jazz piano"
-      }
-    ],
-    "completedSwaps": 15,
-    "memberSince": "2023-01-15T00:00:00.000Z",
-    "badges": ["Verified", "Top Contributor", "Quick Responder"]
-  }
-}
-```
-
-**Update User Profile**
-```
-PUT /api/users/:id
+POST /api/auth/refresh
 ```
 
 Request:
 ```json
 {
-  "bio": "Full-stack developer with expertise in React and Node.js",
-  "location": "Brooklyn, NY",
-  "availableDays": ["MONDAY", "WEDNESDAY", "FRIDAY"],
-  "availableHours": {
-    "from": "18:00",
-    "to": "21:00"
-  }
+  "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
-Response (200 OK):
-```json
-{
-  "success": true,
-  "message": "Profile updated successfully",
-  "user": {
-    "id": "usr_123456",
-    "firstName": "John",
-    "lastName": "Doe",
-    "bio": "Full-stack developer with expertise in React and Node.js",
-    "location": "Brooklyn, NY",
-    "availableDays": ["MONDAY", "WEDNESDAY", "FRIDAY"],
-    "availableHours": {
-      "from": "18:00",
-      "to": "21:00"
-    },
-    "updatedAt": "2023-07-20T16:45:22.123Z"
-  }
-}
+**Logout**
+```
+POST /api/auth/logout
+Authorization: Bearer <token>
 ```
 
-### Skill Management
-
-**Add New Skill**
+**Verify Email**
 ```
-POST /api/users/skills
+POST /api/auth/verify-email/:token
+Authorization: Bearer <token>
+```
+
+**Get Current User**
+```
+GET /api/auth/me
+Authorization: Bearer <token>
+```
+
+### Enhanced Messaging
+
+**Get Unread Count**
+```
+GET /api/messages/unread-count
+Authorization: Bearer <token>
+```
+
+**Get Messages with User**
+```
+GET /api/messages/user/:userId
+Authorization: Bearer <token>
+```
+
+**Mark Message as Read**
+```
+PUT /api/messages/:messageId/read
+Authorization: Bearer <token>
+```
+
+**Delete Message**
+```
+DELETE /api/messages/:messageId
+Authorization: Bearer <token>
+```
+
+### Skills Management
+
+**Update Skill Offered**
+```
+PUT /api/skills/offered/:id
+Authorization: Bearer <token>
+```
+
+**Delete Skill Offered**
+```
+DELETE /api/skills/offered/:id
+Authorization: Bearer <token>
+```
+
+**Update Skill Wanted**
+```
+PUT /api/skills/wanted/:id
+Authorization: Bearer <token>
+```
+
+**Delete Skill Wanted**
+```
+DELETE /api/skills/wanted/:id
+Authorization: Bearer <token>
+```
+
+**Get Skill Categories**
+```
+GET /api/skills/categories
+```
+
+### User Management
+
+**Upload Profile Photo**
+```
+POST /api/users/upload-photo
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
+```
+
+**Change Password**
+```
+PUT /api/user/password
+Authorization: Bearer <token>
 ```
 
 Request:
 ```json
 {
-  "name": "React Development",
-  "category": "TECHNOLOGY",
-  "level": "ADVANCED",
-  "description": "Component architecture, hooks, state management",
-  "yearsOfExperience": 3,
-  "canTeach": true
+  "currentPassword": "oldPassword123",
+  "newPassword": "newPassword456"
 }
 ```
 
-Response (201 Created):
-```json
-{
-  "success": true,
-  "message": "Skill added successfully",
-  "skill": {
-    "id": "skl_789014",
-    "name": "React Development",
-    "category": "TECHNOLOGY",
-    "level": "ADVANCED",
-    "description": "Component architecture, hooks, state management",
-    "yearsOfExperience": 3,
-    "canTeach": true,
-    "userId": "usr_123456",
-    "createdAt": "2023-07-21T10:15:30.123Z"
-  }
-}
+**Delete Account**
+```
+DELETE /api/user/account
+Authorization: Bearer <token>
 ```
 
-### Swap Requests
+### Additional Review Endpoints
 
-**Create Swap Request**
+**Mark Review as Helpful**
 ```
-POST /api/swaps
-```
-
-Request:
-```json
-{
-  "recipientId": "usr_654321",
-  "offeredSkillId": "skl_789014",
-  "requestedSkillId": "skl_987654",
-  "proposedSchedule": [
-    {
-      "date": "2023-08-15",
-      "startTime": "18:00",
-      "endTime": "19:30"
-    },
-    {
-      "date": "2023-08-17",
-      "startTime": "19:00",
-      "endTime": "20:30"
-    }
-  ],
-  "message": "I'd love to learn about GraphQL while teaching you React hooks!"
-}
+POST /api/ratings/reviews/:reviewId/helpful
+Authorization: Bearer <token>
 ```
 
-Response (201 Created):
-```json
-{
-  "success": true,
-  "message": "Swap request sent successfully",
-  "swapRequest": {
-    "id": "swp_246810",
-    "status": "PENDING",
-    "senderId": "usr_123456",
-    "recipientId": "usr_654321",
-    "offeredSkill": {
-      "id": "skl_789014",
-      "name": "React Development"
-    },
-    "requestedSkill": {
-      "id": "skl_987654",
-      "name": "GraphQL"
-    },
-    "proposedSchedule": [
-      {
-        "date": "2023-08-15",
-        "startTime": "18:00",
-        "endTime": "19:30"
-      },
-      {
-        "date": "2023-08-17",
-        "startTime": "19:00",
-        "endTime": "20:30"
-      }
-    ],
-    "message": "I'd love to learn about GraphQL while teaching you React hooks!",
-    "createdAt": "2023-07-25T09:22:15.123Z"
-  }
-}
+**Report Review**
+```
+POST /api/ratings/reviews/:reviewId/report
+Authorization: Bearer <token>
 ```
 
-**Accept Swap Request**
+**Get User Rating Stats**
 ```
-PUT /api/swaps/:id/accept
-```
-
-Request:
-```json
-{
-  "confirmedSchedule": {
-    "date": "2023-08-15",
-    "startTime": "18:00",
-    "endTime": "19:30"
-  },
-  "message": "Sounds great! Looking forward to our session."
-}
+GET /api/ratings/users/:userId/rating-stats
+Authorization: Bearer <token>
 ```
 
-Response (200 OK):
-```json
-{
-  "success": true,
-  "message": "Swap request accepted",
-  "swapRequest": {
-    "id": "swp_246810",
-    "status": "ACCEPTED",
-    "confirmedSchedule": {
-      "date": "2023-08-15",
-      "startTime": "18:00",
-      "endTime": "19:30"
-    },
-    "responseMessage": "Sounds great! Looking forward to our session.",
-    "updatedAt": "2023-07-26T14:35:42.123Z"
-  }
-}
+### Social Sharing
+
+**Share Profile**
+```
+POST /api/social/share/profile
+Authorization: Bearer <token>
 ```
 
-### Rating & Reviews
-
-**Create Review After Swap**
+**Share Skill**
 ```
-POST /api/reviews
-```
-
-Request:
-```json
-{
-  "swapId": "swp_246810",
-  "recipientId": "usr_654321",
-  "ratings": {
-    "overall": 5,
-    "teachingQuality": 5,
-    "communication": 4,
-    "reliability": 5
-  },
-  "comment": "Jane was an excellent teacher! Explained GraphQL concepts clearly and provided great examples. Would definitely recommend!",
-  "skills": ["clear communication", "patience", "expertise"]
-}
+POST /api/social/share/skill
+Authorization: Bearer <token>
 ```
 
-Response (201 Created):
-```json
-{
-  "success": true,
-  "message": "Review submitted successfully",
-  "review": {
-    "id": "rev_135790",
-    "swapId": "swp_246810",
-    "reviewerId": "usr_123456",
-    "recipientId": "usr_654321",
-    "ratings": {
-      "overall": 5,
-      "teachingQuality": 5,
-      "communication": 4,
-      "reliability": 5
-    },
-    "comment": "Jane was an excellent teacher! Explained GraphQL concepts clearly and provided great examples. Would definitely recommend!",
-    "skills": ["clear communication", "patience", "expertise"],
-    "createdAt": "2023-08-16T10:20:30.123Z"
-  }
-}
+**Share Achievement**
+```
+POST /api/social/share/achievement
+Authorization: Bearer <token>
 ```
 
-### Search & Discovery
-
-**Search for Skills/Users**
+**Generate Referral Link**
 ```
-GET /api/discovery/search?query=javascript&location=new%20york&maxDistance=10&skillLevel=INTERMEDIATE
-```
-
-Response (200 OK):
-```json
-{
-  "success": true,
-  "results": {
-    "users": [
-      {
-        "id": "usr_112233",
-        "firstName": "Alice",
-        "lastName": "Smith",
-        "location": "New York, NY",
-        "profilePicture": "https://cloudinary.com/skillswap/profiles/alice.jpg",
-        "averageRating": 4.9,
-        "distance": 3.2,
-        "matchedSkill": {
-          "id": "skl_445566",
-          "name": "JavaScript Programming",
-          "level": "ADVANCED"
-        }
-      },
-      {
-        "id": "usr_223344",
-        "firstName": "Bob",
-        "lastName": "Johnson",
-        "location": "Brooklyn, NY",
-        "profilePicture": "https://cloudinary.com/skillswap/profiles/bob.jpg",
-        "averageRating": 4.7,
-        "distance": 6.8,
-        "matchedSkill": {
-          "id": "skl_556677",
-          "name": "JavaScript Programming",
-          "level": "INTERMEDIATE"
-        }
-      }
-    ],
-    "totalResults": 2,
-    "page": 1,
-    "totalPages": 1
-  }
-}
+POST /api/social/referral
+Authorization: Bearer <token>
 ```
 
-### Admin Operations
-
-**Get Platform Statistics**
+**Import Social Profile**
 ```
-GET /api/admin/stats
-```
-
-Response (200 OK):
-```json
-{
-  "success": true,
-  "stats": {
-    "userStats": {
-      "totalUsers": 1250,
-      "newUsersToday": 15,
-      "activeUsersLastWeek": 450,
-      "verifiedUsers": 1050
-    },
-    "swapStats": {
-      "totalSwaps": 780,
-      "completedSwaps": 520,
-      "pendingSwaps": 150,
-      "cancelledSwaps": 110,
-      "averageRating": 4.6
-    },
-    "skillStats": {
-      "totalSkills": 1850,
-      "popularCategories": [
-        { "category": "TECHNOLOGY", "count": 520 },
-        { "category": "LANGUAGE", "count": 320 },
-        { "category": "MUSIC", "count": 280 }
-      ]
-    },
-    "timeframe": {
-      "start": "2023-01-01T00:00:00.000Z",
-      "end": "2023-07-31T23:59:59.999Z"
-    }
-  }
-}
+POST /api/social/import-profile
+Authorization: Bearer <token>
 ```
 
-## 🔒 Security Features
-
-- **Authentication**: JWT with refresh tokens + OAuth (Google, Facebook, Twitter)
-- **Authorization**: Role-based access control (User, Admin, Moderator)
-- **Security Middleware**: Helmet, CORS, Rate limiting (express-rate-limit)
-- **Input Validation**: Express-validator for all endpoints
-- **File Upload Security**: Multer with file type validation
-- **Data Encryption**: Bcrypt for passwords, encrypted sensitive data
-- **SQL Injection Protection**: Prisma ORM provides built-in protection
-
-## 📊 Database Schema (Prisma)
-
-Key models include:
-- **Users**: Authentication, profiles, OAuth connections
-- **Skills**: Offered/wanted skills with categories and levels
-- **SwapRequests**: Request lifecycle and status tracking
-- **Reviews**: Multi-dimensional ratings and feedback
-- **Messages**: Secure messaging system
-- **Notifications**: Real-time notification system
-- **Achievements**: Gamification and credit system
-- **AdminActions**: Audit trail for admin activities
-
-## 🚀 Getting Started
-
-1. **Clone Repository**
-   ```bash
-   git clone <repository-url>
-   cd Skill-Swap/backend
-   ```
-
-2. **Install Dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Environment Setup**
-   ```bash
-   cp .env.example .env
-   # Configure your environment variables
-   ```
-
-4. **Database Setup**
-   ```bash
-   # Generate Prisma client
-   npx prisma generate
-   
-   # Run migrations
-   npx prisma migrate dev
-   
-   # Seed database (optional)
-   npx prisma db seed
-   ```
-
-5. **Start Development Server**
-   ```bash
-   npm run dev
-   ```
-
-6. **Run in Production**
-   ```bash
-   npm start
-   ```
-
-## 🔧 Environment Variables
-
-```env
-# Database
-DATABASE_URL="postgresql://username:password@localhost:5432/skillswap"
-
-# JWT Configuration
-JWT_SECRET="your-super-secret-jwt-key"
-JWT_EXPIRE="7d"
-JWT_REFRESH_SECRET="your-refresh-secret-key"
-JWT_REFRESH_EXPIRE="30d"
-
-# OAuth Configuration
-GOOGLE_CLIENT_ID="your-google-client-id"
-GOOGLE_CLIENT_SECRET="your-google-client-secret"
-FACEBOOK_APP_ID="your-facebook-app-id"
-FACEBOOK_APP_SECRET="your-facebook-app-secret"
-TWITTER_CONSUMER_KEY="your-twitter-consumer-key"
-TWITTER_CONSUMER_SECRET="your-twitter-consumer-secret"
-
-# Email Configuration
-EMAIL_HOST="smtp.gmail.com"
-EMAIL_PORT=587
-EMAIL_USER="your-email@gmail.com"
-EMAIL_PASS="your-app-password"
-EMAIL_FROM="noreply@skillswap.com"
-
-# File Upload (Cloudinary)
-CLOUDINARY_CLOUD_NAME="your-cloud-name"
-CLOUDINARY_API_KEY="your-api-key"
-CLOUDINARY_API_SECRET="your-api-secret"
-
-# App Configuration
-NODE_ENV="development"
-PORT=5000
-FRONTEND_URL="http://localhost:3000"
+**Find Social Connections**
+```
+POST /api/social/find-connections
+Authorization: Bearer <token>
 ```
 
-## 🧪 Testing
-
-```bash
-# Run tests
-npm test
-
-# Run tests with coverage
-npm run test:coverage
-
-# Run specific test file
-npm test -- auth.test.js
+**Get Social Stats**
 ```
-
-## 📱 Real-time Features
-
-The platform includes Socket.io for real-time functionality:
-- Live swap request notifications
-- Real-time messaging
-- Online user presence
-- Live admin monitoring
-
-## 🔄 API Rate Limiting
-
-All endpoints are protected with rate limiting:
-- **General API**: 100 requests per 15 minutes
-- **Auth endpoints**: 5 attempts per 15 minutes
-- **Upload endpoints**: 10 uploads per hour
-
-## 📈 Monitoring & Analytics
-
-- **Request logging**: Morgan middleware
-- **Error tracking**: Centralized error handling
-- **Performance monitoring**: Custom metrics
-- **Admin analytics**: Comprehensive reporting system
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the ISC License - see the LICENSE file for details.
+GET /api/social/stats
+Authorization: Bearer <token>
+```
 
 ## 🆘 Support
-
-For support and questions:
-- Create an issue in the repository
-- Contact the development team
-- Check the documentation wiki
-
----
-
-**Built with ❤️ using Node.js, Express, Prisma, and PostgreSQL**

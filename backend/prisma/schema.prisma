@@ -27,6 +27,12 @@ model User {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
+  // Google Calendar Integration
+  googleAccessToken    String?
+  googleRefreshToken   String?
+  googleTokenExpiry    DateTime?
+  calendarConnected    Boolean   @default(false)
+
   // Related entities
   skillsOffered  SkillOffered[]
   skillsWanted   SkillWanted[]
@@ -64,6 +70,9 @@ model User {
   adminMessages    AdminMessage[]   @relation("AdminMessageUsers")
   reportsMade      Report[]         @relation("ReportMaker")
   reportsReceived  Report[]         @relation("ReportedUser")
+
+  // Simple meetings
+  simpleMeetings   SimpleMeeting[]
 
   role           UserRole  @default(USER)
   status         UserStatus @default(ACTIVE)
@@ -204,6 +213,7 @@ model SwapRequest {
   priority        PriorityLevel @default(MEDIUM)
   
   scheduledSession ScheduledSession?
+  swapSession     SwapSession?
   completion      Completion?
   reviews         Review[]
   messages        Message[]
@@ -545,4 +555,59 @@ model TrendingTopic {
   updatedAt DateTime @updatedAt
 
   @@map("trending_topics")
+}
+
+model SwapSession {
+  id              Int      @id @default(autoincrement())
+  swapRequest     SwapRequest @relation(fields: [swapRequestId], references: [id], onDelete: Cascade)
+  swapRequestId   Int      @unique
+  
+  // Google Calendar Event Details
+  googleEventId   String?
+  googleMeetLink  String?
+  calendarEventCreated Boolean @default(false)
+  
+  // Session Details
+  scheduledDate   DateTime
+  duration        Int      // in minutes
+  title           String
+  description     String?
+  
+  // Meeting Status
+  status          SessionStatus @default(SCHEDULED)
+  actualStartTime DateTime?
+  actualEndTime   DateTime?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("swap_sessions")
+}
+
+enum SessionStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// Simple meeting model - just Google Meet link and email
+model SimpleMeeting {
+  id                Int       @id @default(autoincrement())
+  organizerId       Int
+  attendeeEmail     String
+  attendeeName      String?
+  title             String
+  description       String?
+  meetingLink       String    // Google Meet link
+  scheduledDateTime DateTime?
+  duration          Int       @default(60) // in minutes
+  status            String    @default("SCHEDULED")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  organizer         User      @relation(fields: [organizerId], references: [id])
+  
+  @@map("simple_meetings")
 }
