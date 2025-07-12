@@ -1207,21 +1207,18 @@ export const UserProfileModal = ({ isOpen, onClose, userId, userName }) => {
     try {
       setProfileUser(null);
       
-      // Fetch user profile from backend
-      const profileResponse = await apiService.getUserById(userId);
+      // Fetch user profile from backend (includes skills)
+      const profileResponse = await apiService.getUserSkills(userId);
       
       // Fetch user's social stats
       const statsResponse = await apiService.getUserSocialStats(userId);
-      
-      // Fetch user's skills
-      const skillsResponse = await apiService.getUserSkills(userId);
       
       // Combine the data
       const profileData = {
         id: profileResponse.id,
         name: profileResponse.name,
         username: `@${profileResponse.name.toLowerCase().replace(/\s+/g, '')}`,
-        email: profileResponse.email,
+        email: profileResponse.email || 'email@example.com',
         bio: profileResponse.bio || 'No bio available',
         location: profileResponse.location || 'Location not specified',
         joinedDate: `Joined ${new Date(profileResponse.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
@@ -1232,12 +1229,12 @@ export const UserProfileModal = ({ isOpen, onClose, userId, userName }) => {
         followers: statsResponse.followersCount || 0,
         following: statsResponse.followingCount || 0,
         posts: statsResponse.postsCount || 0,
-        skills: skillsResponse.skillsOffered?.map(skill => ({
+        skills: profileResponse.skillsOffered?.map(skill => ({
           name: skill.skillName,
           level: skill.level || 'INTERMEDIATE',
           endorsements: 0 // Not implemented in backend yet
         })) || [],
-        skillsWanted: skillsResponse.skillsWanted?.map(skill => ({
+        skillsWanted: profileResponse.skillsWanted?.map(skill => ({
           name: skill.skillName,
           priority: skill.priority || 'MEDIUM',
           targetLevel: skill.targetLevel || 'INTERMEDIATE'
@@ -1319,6 +1316,8 @@ export const UserProfileModal = ({ isOpen, onClose, userId, userName }) => {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogTitle className="sr-only">Loading User Profile</DialogTitle>
+          <DialogDescription className="sr-only">Loading user profile information</DialogDescription>
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
@@ -1333,6 +1332,8 @@ export const UserProfileModal = ({ isOpen, onClose, userId, userName }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden p-0">
+        <DialogTitle className="sr-only">User Profile</DialogTitle>
+        <DialogDescription className="sr-only">View detailed profile information for {profileUser.name}</DialogDescription>
         {/* Cover Photo and Profile Header */}
         <div className="relative">
           <div className="h-32 bg-gradient-to-r from-blue-500 to-purple-600"></div>

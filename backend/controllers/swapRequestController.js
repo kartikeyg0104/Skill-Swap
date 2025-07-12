@@ -190,7 +190,7 @@ const getSwapRequests = async (req, res) => {
     }
 
     // Filter by status
-    if (status) {
+    if (status && status !== 'all') {
       whereConditions.status = status;
     }
 
@@ -476,7 +476,7 @@ const getSentSwapRequests = async (req, res) => {
     const take = parseInt(limit);
 
     let whereConditions = { requesterId: req.user.id };
-    if (status) {
+    if (status && status !== 'all') {
       whereConditions.status = status;
     }
 
@@ -517,7 +517,7 @@ const getReceivedSwapRequests = async (req, res) => {
     const take = parseInt(limit);
 
     let whereConditions = { receiverId: req.user.id };
-    if (status) {
+    if (status && status !== 'all') {
       whereConditions.status = status;
     }
 

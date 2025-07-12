@@ -159,7 +159,7 @@ class ApiService {
   }
 
   async getUserSkills(userId) {
-    return await this.request(`/skills/user/${userId}`);
+    return await this.request(`/users/${userId}`);
   }
 
   async deleteSkillOffered(skillId) {
