@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
   Button,
@@ -47,6 +47,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import apiService from '../services/apiService';
 
 // Notifications Component
 export const NotificationsModal = ({ isOpen, onClose }) => {
@@ -621,37 +622,58 @@ export const EditProfileModal = ({ isOpen, onClose }) => {
 // Comments Component
 export const CommentsModal = ({ isOpen, onClose, postId }) => {
   const [comment, setComment] = useState('');
-  const [comments] = useState([
-    {
-      id: 1,
-      user: 'Sarah Chen',
-      avatar: '/placeholder.svg',
-      comment: 'Great tutorial! Very helpful for beginners.',
-      time: '2 hours ago',
-      likes: 5
-    },
-    {
-      id: 2,
-      user: 'Mike Johnson',
-      avatar: '/placeholder.svg',
-      comment: 'Could you explain the useState hook in more detail?',
-      time: '4 hours ago',
-      likes: 2
-    },
-    {
-      id: 3,
-      user: 'Alex Rivera',
-      avatar: '/placeholder.svg',
-      comment: 'This solved my problem! Thank you so much.',
-      time: '1 day ago',
-      likes: 8
-    }
-  ]);
+  const [comments, setComments] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const addComment = () => {
+  useEffect(() => {
+    const fetchComments = async () => {
+      if (isOpen && postId) {
+        setLoading(true);
+        try {
+          const response = await apiService.getPostComments(postId);
+          // Normalize backend response to expected format
+          setComments(
+            (response.comments || []).map((c) => ({
+              id: c.id,
+              user: c.author?.name || 'User',
+              avatar: c.author?.profilePhoto || '/placeholder.svg',
+              comment: c.content,
+              time: c.timestamp || new Date(c.createdAt).toLocaleString(),
+              likes: c.likes || 0
+            }))
+          );
+        } catch (error) {
+          toast.error('Failed to load comments');
+          setComments([]);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    fetchComments();
+  }, [isOpen, postId]);
+
+  const addComment = async () => {
     if (comment.trim()) {
-      toast.success('Comment added!');
-      setComment('');
+      try {
+        await apiService.addComment(postId, { content: comment.trim() });
+        toast.success('Comment added!');
+        setComment('');
+        // Refresh comments after adding
+        const response = await apiService.getPostComments(postId);
+        setComments(
+          (response.comments || []).map((c) => ({
+            id: c.id,
+            user: c.author?.name || 'User',
+            avatar: c.author?.profilePhoto || '/placeholder.svg',
+            comment: c.content,
+            time: c.timestamp || new Date(c.createdAt).toLocaleString(),
+            likes: c.likes || 0
+          }))
+        );
+      } catch (error) {
+        toast.error('Failed to add comment');
+      }
     }
   };
 
@@ -664,35 +686,39 @@ export const CommentsModal = ({ isOpen, onClose, postId }) => {
             <span>Comments ({comments.length})</span>
           </DialogTitle>
         </DialogHeader>
-        
         <div className="flex-1 overflow-y-auto space-y-4">
-          {comments.map((comment) => (
-            <div key={comment.id} className="flex space-x-3">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={comment.avatar} />
-                <AvatarFallback>{comment.user.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 space-y-1">
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="font-medium text-sm">{comment.user}</p>
-                  <p className="text-sm text-gray-700">{comment.comment}</p>
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading comments...</div>
+          ) : comments.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">No comments yet.</div>
+          ) : (
+            comments.map((comment) => (
+              <div key={comment.id} className="flex space-x-3">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={comment.avatar} />
+                  <AvatarFallback>{comment.user.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 space-y-1">
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="font-medium text-sm">{comment.user}</p>
+                    <p className="text-sm text-gray-700">{comment.comment}</p>
+                  </div>
+                  <div className="flex items-center space-x-4 text-xs text-gray-500">
+                    <span>{comment.time}</span>
+                    <button className="flex items-center space-x-1 hover:text-red-500">
+                      <Heart className="h-3 w-3" />
+                      <span>{comment.likes}</span>
+                    </button>
+                    <button className="hover:text-blue-500">Reply</button>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-4 text-xs text-gray-500">
-                  <span>{comment.time}</span>
-                  <button className="flex items-center space-x-1 hover:text-red-500">
-                    <Heart className="h-3 w-3" />
-                    <span>{comment.likes}</span>
-                  </button>
-                  <button className="hover:text-blue-500">Reply</button>
-                </div>
+                <Button variant="ghost" size="sm">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
               </div>
-              <Button variant="ghost" size="sm">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
+            ))
+          )}
         </div>
-        
         <div className="flex items-center space-x-2 pt-4 border-t">
           <Input
             value={comment}

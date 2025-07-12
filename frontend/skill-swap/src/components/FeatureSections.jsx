@@ -56,6 +56,7 @@ import {
   Camera
 } from 'lucide-react';
 import { toast } from 'sonner';
+import apiService from '../services/api';
 
 // Notification Management System
 export const useNotifications = () => {
@@ -816,60 +817,68 @@ export const EditProfileModal = ({ isOpen, onClose }) => {
 // Comments Section
 export const CommentsModal = ({ isOpen, onClose, postId, postAuthor }) => {
   const { user } = useAuth();
-  const [comments, setComments] = useState([
-    {
-      id: 1,
-      author: 'Sarah Chen',
-      avatar: '/placeholder-avatar.jpg',
-      content: 'Great post! Really helpful insights.',
-      time: '2 hours ago',
-      likes: 5,
-      liked: false,
-      replies: [
-        {
-          id: 11,
-          author: 'Mike Johnson',
-          avatar: '/placeholder-avatar.jpg',
-          content: 'I agree! Thanks for sharing.',
-          time: '1 hour ago',
-          likes: 2,
-          liked: true
-        }
-      ]
-    },
-    {
-      id: 2,
-      author: 'David Lee',
-      avatar: '/placeholder-avatar.jpg',
-      content: 'This is exactly what I was looking for. Thank you!',
-      time: '4 hours ago',
-      likes: 8,
-      liked: true,
-      replies: []
-    }
-  ]);
-
+  const [comments, setComments] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState('');
 
-  const addComment = () => {
+  // Fetch comments when modal opens
+  useEffect(() => {
+    const fetchComments = async () => {
+      if (isOpen && postId) {
+        setLoading(true);
+        try {
+          const response = await apiService.getPostComments(postId);
+          // Transform backend response to match frontend format
+          const transformedComments = (response.comments || []).map(comment => ({
+            id: comment.id,
+            author: comment.author?.name || 'User',
+            avatar: comment.author?.profilePhoto || '/placeholder-avatar.jpg',
+            content: comment.content,
+            time: comment.timestamp || new Date(comment.createdAt).toLocaleString(),
+            likes: comment.likes || 0,
+            liked: false, // Backend doesn't track if current user liked
+            replies: [] // Backend doesn't support replies yet
+          }));
+          setComments(transformedComments);
+        } catch (error) {
+          console.error('Error fetching comments:', error);
+          toast.error('Failed to load comments');
+          setComments([]);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    fetchComments();
+  }, [isOpen, postId]);
+
+  const addComment = async () => {
     if (!newComment.trim()) return;
 
-    const comment = {
-      id: Date.now(),
-      author: user?.name || 'You',
-      avatar: user?.profilePhoto || '/placeholder-avatar.jpg',
-      content: newComment,
-      time: 'just now',
+    try {
+      const response = await apiService.addComment(postId, { content: newComment.trim() });
+      
+      // Add the new comment to the list
+      const newCommentObj = {
+        id: response.comment.id,
+        author: response.comment.author?.name || user?.name || 'You',
+        avatar: response.comment.author?.profilePhoto || user?.profilePhoto || '/placeholder-avatar.jpg',
+        content: response.comment.content,
+        time: response.comment.timestamp || 'just now',
       likes: 0,
       liked: false,
       replies: []
     };
 
-    setComments(prev => [comment, ...prev]);
+      setComments(prev => [newCommentObj, ...prev]);
     setNewComment('');
-    toast.success('Comment added');
+      toast.success('Comment added successfully');
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      toast.error('Failed to add comment');
+    }
   };
 
   const addReply = (commentId) => {
@@ -965,7 +974,18 @@ export const CommentsModal = ({ isOpen, onClose, postId, postAuthor }) => {
 
         {/* Comments List */}
         <div className="overflow-y-auto max-h-[50vh] space-y-4">
-          {comments.map((comment) => (
+          {loading ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+              <p>Loading comments...</p>
+            </div>
+          ) : comments.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p>No comments yet. Be the first to comment!</p>
+            </div>
+          ) : (
+            comments.map((comment) => (
             <div key={comment.id} className="space-y-3">
               <div className="flex space-x-3">
                 <Avatar className="h-8 w-8">
@@ -1068,7 +1088,8 @@ export const CommentsModal = ({ isOpen, onClose, postId, postAuthor }) => {
                 </div>
               </div>
             </div>
-          ))}
+          ))
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -1076,8 +1097,17 @@ export const CommentsModal = ({ isOpen, onClose, postId, postAuthor }) => {
 };
 
 // Share Section
-export const ShareModal = ({ isOpen, onClose, postContent, postAuthor }) => {
-  const [shareText, setShareText] = useState(`Check out this post by ${postAuthor}: "${postContent.substring(0, 100)}..."`);
+export const ShareModal = ({ isOpen, onClose, post }) => {
+  const [shareText, setShareText] = useState(
+    post ? `Check out this post by ${post.author?.name || 'User'}: "${post.content?.substring(0, 100) || ''}..."` : ''
+  );
+
+  // Update share text when post changes
+  useEffect(() => {
+    if (post) {
+      setShareText(`Check out this post by ${post.author?.name || 'User'}: "${post.content?.substring(0, 100) || ''}..."`);
+    }
+  }, [post]);
 
   const shareOptions = [
     {
@@ -1153,26 +1183,7 @@ export const ShareModal = ({ isOpen, onClose, postContent, postAuthor }) => {
             ))}
           </div>
 
-          <div className="pt-2 border-t">
-            <Button
-              variant="outline"
-              onClick={() => {
-                navigator.share({
-                  title: 'SkillSwap Post',
-                  text: shareText,
-                  url: window.location.href
-                }).then(() => {
-                  toast.success('Shared successfully');
-                }).catch(() => {
-                  toast.error('Share failed');
-                });
-              }}
-              className="w-full"
-            >
-              <Share2 className="h-4 w-4 mr-2" />
-              More Share Options
-            </Button>
-          </div>
+          
         </div>
       </DialogContent>
     </Dialog>
@@ -1188,79 +1199,116 @@ export const UserProfileModal = ({ isOpen, onClose, userId, userName }) => {
 
   useEffect(() => {
     if (isOpen && userId) {
-      // Mock profile data - in real app, fetch from API
-      const mockProfile = {
-        id: userId,
-        name: userName || 'Sarah Chen',
-        username: '@sarah_chen',
-        email: 'sarah@example.com',
-        bio: 'Full-stack developer passionate about React and Node.js. Love teaching and learning new technologies!',
-        location: 'San Francisco, CA',
-        joinedDate: 'Joined March 2023',
-        website: 'https://sarahchen.dev',
-        avatar: '/placeholder-avatar.jpg',
-        coverPhoto: '/placeholder-cover.jpg',
-        verified: true,
-        followers: 1234,
-        following: 567,
-        posts: 89,
-        skills: [
-          { name: 'React', level: 'Expert', endorsements: 45 },
-          { name: 'JavaScript', level: 'Expert', endorsements: 38 },
-          { name: 'Node.js', level: 'Advanced', endorsements: 29 },
-          { name: 'TypeScript', level: 'Advanced', endorsements: 22 },
-          { name: 'Python', level: 'Intermediate', endorsements: 15 }
-        ],
-        experience: [
-          {
-            title: 'Senior Frontend Developer',
-            company: 'Tech Corp',
-            duration: '2022 - Present',
-            description: 'Leading frontend development team, building scalable React applications.'
-          },
-          {
-            title: 'Full Stack Developer',
-            company: 'Startup Inc',
-            duration: '2020 - 2022',
-            description: 'Developed full-stack applications using React, Node.js, and MongoDB.'
-          }
-        ],
-        education: [
-          {
-            degree: 'Bachelor of Computer Science',
-            school: 'University of California, Berkeley',
-            year: '2020'
-          }
-        ],
-        achievements: [
-          { title: 'Top Contributor', description: 'Ranked in top 5% of contributors this year' },
-          { title: 'Expert Teacher', description: 'Successfully taught 50+ students' },
-          { title: 'Community Leader', description: 'Active community leader and mentor' }
-        ],
-        recentPosts: [
-          {
-            id: 1,
-            content: 'Just finished a great mentoring session on React hooks! 🚀',
-            timestamp: '2 hours ago',
-            likes: 24,
-            comments: 8
-          },
-          {
-            id: 2,
-            content: 'Sharing my latest blog post about TypeScript best practices.',
-            timestamp: '1 day ago',
-            likes: 156,
-            comments: 23
-          }
-        ]
-      };
-      setProfileUser(mockProfile);
+      fetchUserProfile();
     }
   }, [isOpen, userId]);
 
-  const toggleFollow = () => {
-    setIsFollowing(!isFollowing);
-    toast.success(isFollowing ? 'Unfollowed user' : 'Following user');
+  const fetchUserProfile = async () => {
+    try {
+      setProfileUser(null);
+      
+      // Fetch user profile from backend
+      const profileResponse = await apiService.getUserById(userId);
+      
+      // Fetch user's social stats
+      const statsResponse = await apiService.getUserSocialStats(userId);
+      
+      // Fetch user's skills
+      const skillsResponse = await apiService.getUserSkills(userId);
+      
+      // Combine the data
+      const profileData = {
+        id: profileResponse.id,
+        name: profileResponse.name,
+        username: `@${profileResponse.name.toLowerCase().replace(/\s+/g, '')}`,
+        email: profileResponse.email,
+        bio: profileResponse.bio || 'No bio available',
+        location: profileResponse.location || 'Location not specified',
+        joinedDate: `Joined ${new Date(profileResponse.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`,
+        website: null, // Not implemented in backend yet
+        avatar: profileResponse.profilePhoto || null,
+        coverPhoto: null, // Not implemented in backend yet
+        verified: profileResponse.isVerified || false,
+        followers: statsResponse.followersCount || 0,
+        following: statsResponse.followingCount || 0,
+        posts: statsResponse.postsCount || 0,
+        skills: skillsResponse.skillsOffered?.map(skill => ({
+          name: skill.skillName,
+          level: skill.level || 'INTERMEDIATE',
+          endorsements: 0 // Not implemented in backend yet
+        })) || [],
+        skillsWanted: skillsResponse.skillsWanted?.map(skill => ({
+          name: skill.skillName,
+          priority: skill.priority || 'MEDIUM',
+          targetLevel: skill.targetLevel || 'INTERMEDIATE'
+        })) || [],
+        experience: [], // Not implemented in backend yet
+        education: [], // Not implemented in backend yet
+        achievements: [], // Not implemented in backend yet
+        recentPosts: [], // Not implemented in backend yet
+        reputation: profileResponse.reputation || {
+          totalPoints: 0,
+          level: 1,
+          averageRating: 0
+        },
+        credits: profileResponse.credits || {
+          balance: 0,
+          totalEarned: 0,
+          totalSpent: 0
+        }
+      };
+      
+      setProfileUser(profileData);
+      setIsFollowing(statsResponse.isFollowing || false);
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      toast.error('Failed to load user profile');
+      
+      // Fallback to basic mock data
+      setProfileUser({
+        id: userId,
+        name: userName || 'User Name',
+        username: '@username',
+        email: 'user@example.com',
+        bio: 'Profile information unavailable',
+        location: 'Location not specified',
+        joinedDate: 'Joined recently',
+        website: null,
+        avatar: null,
+        coverPhoto: null,
+        verified: false,
+        followers: 0,
+        following: 0,
+        posts: 0,
+        skills: [],
+        skillsWanted: [],
+        experience: [],
+        education: [],
+        achievements: [],
+        recentPosts: [],
+        reputation: { totalPoints: 0, level: 1, averageRating: 0 },
+        credits: { balance: 0, totalEarned: 0, totalSpent: 0 }
+      });
+    }
+  };
+
+  const toggleFollow = async () => {
+    try {
+      const response = await apiService.followUser(userId);
+      setIsFollowing(response.isFollowing);
+      toast.success(response.isFollowing ? 'Following user' : 'Unfollowed user');
+      
+      // Update the followers count in the profile
+      if (profileUser) {
+        setProfileUser(prev => ({
+          ...prev,
+          followers: response.followersCount || prev.followers
+        }));
+      }
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+      toast.error('Failed to update follow status');
+    }
   };
 
   const sendMessage = () => {
@@ -1378,43 +1426,84 @@ export const UserProfileModal = ({ isOpen, onClose, userId, userName }) => {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
-                        {profileUser.skills.slice(0, 3).map((skill, index) => (
+                        {profileUser.skills.length > 0 ? (
+                          profileUser.skills.slice(0, 3).map((skill, index) => (
                           <div key={index} className="flex justify-between items-center">
                             <span className="font-medium">{skill.name}</span>
                             <Badge variant="secondary">{skill.level}</Badge>
                           </div>
-                        ))}
+                          ))
+                        ) : (
+                          <p className="text-muted-foreground text-sm">No skills offered yet</p>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
 
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Achievements</CardTitle>
+                      <CardTitle className="text-lg">Reputation & Credits</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
-                        {profileUser.achievements.slice(0, 3).map((achievement, index) => (
-                          <div key={index}>
-                            <p className="font-medium text-sm">{achievement.title}</p>
-                            <p className="text-xs text-muted-foreground">{achievement.description}</p>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Reputation Level</span>
+                          <Badge variant="secondary">Level {profileUser.reputation.level}</Badge>
                           </div>
-                        ))}
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Total Points</span>
+                          <span>{profileUser.reputation.totalPoints}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Credits Balance</span>
+                          <span>{profileUser.credits.balance}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">Total Earned</span>
+                          <span>{profileUser.credits.totalEarned}</span>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
+
+                {/* Skills Wanted Summary */}
+                {profileUser.skillsWanted.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Skills Wanted</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2">
+                        {profileUser.skillsWanted.slice(0, 5).map((skill, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {skill.name} ({skill.priority})
+                          </Badge>
+                        ))}
+                        {profileUser.skillsWanted.length > 5 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{profileUser.skillsWanted.length - 5} more
+                          </Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
-              <TabsContent value="skills" className="space-y-4">
+              <TabsContent value="skills" className="space-y-6">
+                {/* Skills Offered */}
+                <div>
+                  <h3 className="font-semibold mb-3 text-green-700">Skills Offered</h3>
                 <div className="grid gap-3">
-                  {profileUser.skills.map((skill, index) => (
+                    {profileUser.skills.length > 0 ? (
+                      profileUser.skills.map((skill, index) => (
                     <Card key={index}>
                       <CardContent className="p-4">
                         <div className="flex justify-between items-center">
                           <div>
                             <h3 className="font-medium">{skill.name}</h3>
-                            <p className="text-sm text-muted-foreground">{skill.level}</p>
+                                <p className="text-sm text-muted-foreground">Level: {skill.level}</p>
                           </div>
                           <div className="text-right">
                             <p className="text-sm font-medium">{skill.endorsements} endorsements</p>
@@ -1425,7 +1514,41 @@ export const UserProfileModal = ({ isOpen, onClose, userId, userName }) => {
                         </div>
                       </CardContent>
                     </Card>
-                  ))}
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground text-center py-4">No skills offered yet</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Skills Wanted */}
+                <div>
+                  <h3 className="font-semibold mb-3 text-blue-700">Skills Wanted</h3>
+                  <div className="grid gap-3">
+                    {profileUser.skillsWanted.length > 0 ? (
+                      profileUser.skillsWanted.map((skill, index) => (
+                        <Card key={index}>
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <h3 className="font-medium">{skill.name}</h3>
+                                <p className="text-sm text-muted-foreground">
+                                  Priority: {skill.priority} • Target Level: {skill.targetLevel}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <Button variant="outline" size="sm">
+                                  Offer to Teach
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground text-center py-4">No skills wanted yet</p>
+                    )}
+                  </div>
                 </div>
               </TabsContent>
 
@@ -1433,7 +1556,8 @@ export const UserProfileModal = ({ isOpen, onClose, userId, userName }) => {
                 <div className="space-y-4">
                   <div>
                     <h3 className="font-semibold mb-3">Work Experience</h3>
-                    {profileUser.experience.map((exp, index) => (
+                    {profileUser.experience.length > 0 ? (
+                      profileUser.experience.map((exp, index) => (
                       <Card key={index} className="mb-3">
                         <CardContent className="p-4">
                           <div className="flex items-start space-x-3">
@@ -1446,12 +1570,16 @@ export const UserProfileModal = ({ isOpen, onClose, userId, userName }) => {
                           </div>
                         </CardContent>
                       </Card>
-                    ))}
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground text-center py-4">No work experience listed yet</p>
+                    )}
                   </div>
 
                   <div>
                     <h3 className="font-semibold mb-3">Education</h3>
-                    {profileUser.education.map((edu, index) => (
+                    {profileUser.education.length > 0 ? (
+                      profileUser.education.map((edu, index) => (
                       <Card key={index} className="mb-3">
                         <CardContent className="p-4">
                           <div className="flex items-start space-x-3">
@@ -1463,13 +1591,17 @@ export const UserProfileModal = ({ isOpen, onClose, userId, userName }) => {
                           </div>
                         </CardContent>
                       </Card>
-                    ))}
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground text-center py-4">No education listed yet</p>
+                    )}
                   </div>
                 </div>
               </TabsContent>
 
               <TabsContent value="posts" className="space-y-4">
-                {profileUser.recentPosts.map((post) => (
+                {profileUser.recentPosts.length > 0 ? (
+                  profileUser.recentPosts.map((post) => (
                   <Card key={post.id}>
                     <CardContent className="p-4">
                       <p className="mb-3">{post.content}</p>
@@ -1482,7 +1614,10 @@ export const UserProfileModal = ({ isOpen, onClose, userId, userName }) => {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-muted-foreground text-center py-4">No posts yet</p>
+                )}
               </TabsContent>
             </div>
           </Tabs>

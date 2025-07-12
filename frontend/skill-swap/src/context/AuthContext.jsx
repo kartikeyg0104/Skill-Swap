@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { apiService } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -17,7 +18,9 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Check for existing session
     const savedUser = localStorage.getItem('skillswap_user');
-    if (savedUser) {
+    const token = localStorage.getItem('skillswap_token');
+    
+    if (savedUser && token) {
       setUser(JSON.parse(savedUser));
     }
     setIsLoading(false);
@@ -26,102 +29,61 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setIsLoading(true);
     
-    // Mock login - in real app, this would be an API call
     try {
-      const mockUser = {
-        id: '1',
-        name: 'John Doe',
-        email: email,
-        profile: {
-          location: 'San Francisco, CA',
-          bio: 'Passionate about learning and sharing knowledge',
-          isPublic: true,
-          verified: true
-        },
-        skillsOffered: [
-          {
-            id: '1',
-            skillName: 'React Development',
-            category: 'Technology',
-            level: 'Expert',
-            description: 'Advanced React development with hooks and modern patterns',
-            endorsed: true
-          }
-        ],
-        skillsWanted: [
-          {
-            id: '2',
-            skillName: 'UI/UX Design',
-            category: 'Creative',
-            level: 'Intermediate',
-            description: 'Want to learn modern design principles',
-            endorsed: false
-          }
-        ],
-        reputation: {
-          overallRating: 4.8,
-          totalRatings: 24,
-          trustScore: 95,
-          badges: ['Expert Teacher', 'Reliable', 'Top Contributor']
-        },
-        credits: {
-          earned: 150,
-          spent: 75,
-          balance: 75
-        }
-      };
-
-      setUser(mockUser);
-      localStorage.setItem('skillswap_user', JSON.stringify(mockUser));
-      setIsLoading(false);
-      return true;
+      const response = await apiService.login({ email, password });
+      
+      if (response && response.user) {
+        setUser(response.user);
+        localStorage.setItem('skillswap_user', JSON.stringify(response.user));
+        setIsLoading(false);
+        return true;
+      } else {
+        setIsLoading(false);
+        return false;
+      }
     } catch (error) {
+      console.error('Login error:', error);
       setIsLoading(false);
-      return false;
+      throw error;
     }
   };
 
-  const register = async (email, password, name) => {
+  const register = async (email, password, name, location) => {
     setIsLoading(true);
     
-    // Mock registration
     try {
-      const newUser = {
-        id: Math.random().toString(36).substr(2, 9),
-        name: name,
-        email: email,
-        profile: {
-          isPublic: true,
-          verified: false
-        },
-        skillsOffered: [],
-        skillsWanted: [],
-        reputation: {
-          overallRating: 0,
-          totalRatings: 0,
-          trustScore: 50,
-          badges: []
-        },
-        credits: {
-          earned: 0,
-          spent: 0,
-          balance: 10 // Welcome bonus
-        }
-      };
-
-      setUser(newUser);
-      localStorage.setItem('skillswap_user', JSON.stringify(newUser));
-      setIsLoading(false);
-      return true;
+      const response = await apiService.register({ 
+        name, 
+        email, 
+        password,
+        location 
+      });
+      
+      if (response && response.user) {
+        setUser(response.user);
+        localStorage.setItem('skillswap_user', JSON.stringify(response.user));
+        setIsLoading(false);
+        return true;
+      } else {
+        setIsLoading(false);
+        return false;
+      }
     } catch (error) {
+      console.error('Registration error:', error);
       setIsLoading(false);
-      return false;
+      throw error;
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('skillswap_user');
+  const logout = async () => {
+    try {
+      await apiService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      localStorage.removeItem('skillswap_user');
+    }
   };
 
   const updateUser = (updates) => {

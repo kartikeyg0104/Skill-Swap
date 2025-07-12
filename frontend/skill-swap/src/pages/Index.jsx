@@ -23,8 +23,12 @@ const loginSchema = z.object({
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 
+      'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
   confirmPassword: z.string(),
+  location: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ['confirmPassword'],
@@ -98,6 +102,7 @@ const AuthModal = ({ children, mode = 'login' }) => {
       email: '',
       password: '',
       confirmPassword: '',
+      location: '',
     },
   });
 
@@ -112,13 +117,14 @@ const AuthModal = ({ children, mode = 'login' }) => {
         toast.error('Invalid credentials. Please try again.');
       }
     } catch (error) {
-      toast.error('An error occurred. Please try again.');
+      console.error('Login error:', error);
+      toast.error(error.message || 'An error occurred. Please try again.');
     }
   };
 
   const onRegisterSubmit = async (data) => {
     try {
-      const success = await register(data.email, data.password, data.name);
+      const success = await register(data.email, data.password, data.name, data.location);
       if (success) {
         toast.success('Welcome to SkillSwap! Your account has been created.');
         setOpen(false);
@@ -127,7 +133,8 @@ const AuthModal = ({ children, mode = 'login' }) => {
         toast.error('Registration failed. Please try again.');
       }
     } catch (error) {
-      toast.error('An error occurred. Please try again.');
+      console.error('Registration error:', error);
+      toast.error(error.message || 'An error occurred. Please try again.');
     }
   };
 
@@ -247,6 +254,21 @@ const AuthModal = ({ children, mode = 'login' }) => {
                     {registerForm.formState.errors.email && (
                       <p className="text-sm text-destructive">
                         {registerForm.formState.errors.email.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="register-location">Location (Optional)</Label>
+                    <Input
+                      id="register-location"
+                      type="text"
+                      placeholder="New York, USA"
+                      {...registerForm.register('location')}
+                    />
+                    {registerForm.formState.errors.location && (
+                      <p className="text-sm text-destructive">
+                        {registerForm.formState.errors.location.message}
                       </p>
                     )}
                   </div>

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { apiService } from '../services/api';
 import { 
   Button,
   Input,
@@ -36,19 +37,42 @@ import {
   Smile,
   MapPin,
   Calendar,
-  LogOut
+  LogOut,
+  RefreshCw
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 // Create Post Component (inline)
 const CreatePost = ({ onPost }) => {
   const [content, setContent] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = () => {
-    if (content.trim()) {
-      onPost(content, null); // Pass null for image since image upload isn't implemented yet
-      setContent('');
-      setIsExpanded(false);
+  const handleSubmit = async () => {
+    if (content.trim() && !isSubmitting) {
+      setIsSubmitting(true);
+      try {
+        // Extract hashtags from content
+        const hashtags = content.match(/#\w+/g) || [];
+        const cleanHashtags = hashtags.map(tag => tag.substring(1));
+        
+        const postData = {
+          content: content.trim(),
+          hashtags: cleanHashtags,
+          isPublic: true
+        };
+
+        const response = await apiService.createPost(postData);
+        onPost(response.post);
+        setContent('');
+        setIsExpanded(false);
+        toast.success('Post created successfully!');
+      } catch (error) {
+        console.error('Error creating post:', error);
+        toast.error('Failed to create post. Please try again.');
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -67,6 +91,7 @@ const CreatePost = ({ onPost }) => {
               onChange={(e) => setContent(e.target.value)}
               onFocus={() => setIsExpanded(true)}
               className="min-h-[60px] resize-none border-none shadow-none focus:ring-0 text-lg placeholder:text-muted-foreground"
+              maxLength={280}
             />
             
             {isExpanded && (
@@ -108,9 +133,9 @@ const CreatePost = ({ onPost }) => {
                     <Button 
                       size="sm"
                       onClick={handleSubmit}
-                      disabled={!content.trim() || content.length > 280}
+                      disabled={!content.trim() || content.length > 280 || isSubmitting}
                     >
-                      Share
+                      {isSubmitting ? 'Sharing...' : 'Share'}
                     </Button>
                   </div>
                 </div>
@@ -124,14 +149,61 @@ const CreatePost = ({ onPost }) => {
 };
 
 // Social Post Component (inline)
-const SocialPost = ({ post, onLike, onBookmark, onViewProfile }) => {
+const SocialPost = ({ post, onLike, onBookmark, onViewProfile, onAddComment }) => {
   const [showComments, setShowComments] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [comment, setComment] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
   const handleProfileClick = () => {
     if (onViewProfile) {
-      onViewProfile(post.author.id || post.author.username, post.author.name);
+      onViewProfile(post.author.id, post.author.name);
     }
+  };
+
+  const handleLike = async () => {
+    try {
+      const response = await apiService.likePost(post.id);
+      onLike(post.id, response.liked, response.likesCount);
+    } catch (error) {
+      console.error('Error liking post:', error);
+      toast.error('Failed to like post');
+    }
+  };
+
+  const handleBookmark = async () => {
+    try {
+      const response = await apiService.bookmarkPost(post.id);
+      onBookmark(post.id, response.bookmarked);
+    } catch (error) {
+      console.error('Error bookmarking post:', error);
+      toast.error('Failed to bookmark post');
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (comment.trim() && !isSubmittingComment) {
+      setIsSubmittingComment(true);
+      try {
+        const response = await apiService.addComment(post.id, { content: comment.trim() });
+        onAddComment(post.id, response.comment);
+        setComment('');
+        toast.success('Comment added successfully!');
+      } catch (error) {
+        console.error('Error adding comment:', error);
+        toast.error('Failed to add comment');
+      } finally {
+        setIsSubmittingComment(false);
+      }
+    }
+  };
+
+  const formatTimestamp = (timestamp) => {
+    if (timestamp === 'now') return 'now';
+    if (timestamp === '2h') return '2h';
+    if (timestamp === '4h') return '4h';
+    if (timestamp === '6h') return '6h';
+    return timestamp;
   };
 
   return (
@@ -144,7 +216,7 @@ const SocialPost = ({ post, onLike, onBookmark, onViewProfile }) => {
                 className="h-10 w-10 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all" 
                 onClick={handleProfileClick}
               >
-                <AvatarImage src={post.author.avatar} alt={post.author.name} />
+                <AvatarImage src={post.author.profilePhoto} alt={post.author.name} />
                 <AvatarFallback>
                   {post.author.name.charAt(0).toUpperCase()}
                 </AvatarFallback>
@@ -158,21 +230,14 @@ const SocialPost = ({ post, onLike, onBookmark, onViewProfile }) => {
                   >
                     {post.author.name}
                   </span>
-                  {post.author.verified && (
+                  {post.author.isVerified && (
                     <Badge variant="secondary" className="h-4 w-4 p-0">
                       <Verified className="h-3 w-3 text-blue-500" />
                     </Badge>
                   )}
                 </div>
                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                  <span 
-                    className="cursor-pointer hover:underline hover:text-primary transition-colors"
-                    onClick={handleProfileClick}
-                  >
-                    {post.author.username}
-                  </span>
-                  <span>•</span>
-                  <span>{post.timestamp}</span>
+                  <span>{formatTimestamp(post.timestamp)}</span>
                 </div>
               </div>
             </div>
@@ -188,77 +253,99 @@ const SocialPost = ({ post, onLike, onBookmark, onViewProfile }) => {
             </p>
           </div>
 
-          {post.image && (
+          {post.imageUrl && (
             <div className="mb-4 rounded-lg overflow-hidden">
               <img 
-                src={post.image} 
+                src={post.imageUrl} 
                 alt="Post content" 
                 className="w-full h-auto object-cover"
               />
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-4 border-t">
-            <div className="flex items-center space-x-6">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onLike(post.id)}
-                className={`flex items-center space-x-2 ${
-                  post.liked ? 'text-red-500' : 'text-muted-foreground'
-                }`}
-              >
-                <Heart className={`h-4 w-4 ${post.liked ? 'fill-current' : ''}`} />
-                <span>{post.likes}</span>
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowComments(true)}
-                className="flex items-center space-x-2 text-muted-foreground hover:text-blue-500"
-              >
-                <MessageCircle className="h-4 w-4" />
-                <span>{post.comments}</span>
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowShare(true)}
-                className="flex items-center space-x-2 text-muted-foreground hover:text-green-500"
-              >
-                <Share className="h-4 w-4" />
-                <span>{post.shares}</span>
-              </Button>
+          <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
+            <div className="flex items-center space-x-4">
+              <span>{post.likes} likes</span>
+              <span>{post.comments} comments</span>
+              <span>{post.shares} shares</span>
             </div>
+          </div>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onBookmark(post.id)}
-              className={`${
-                post.bookmarked ? 'text-blue-500' : 'text-muted-foreground'
-              }`}
+          <div className="flex items-center justify-between border-t pt-4">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className={`flex items-center space-x-2 ${post.liked ? 'text-red-500' : ''}`}
+              onClick={handleLike}
+            >
+              <Heart className={`h-4 w-4 ${post.liked ? 'fill-current' : ''}`} />
+              <span>Like</span>
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="flex items-center space-x-2"
+              onClick={() => setShowComments(true)}
+            >
+              <MessageCircle className="h-4 w-4" />
+              <span>Comment</span>
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="flex items-center space-x-2"
+              onClick={() => setShowShare(true)}
+            >
+              <Share className="h-4 w-4" />
+              <span>Share</span>
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className={`flex items-center space-x-2 ${post.bookmarked ? 'text-blue-500' : ''}`}
+              onClick={handleBookmark}
             >
               <Bookmark className={`h-4 w-4 ${post.bookmarked ? 'fill-current' : ''}`} />
+              <span>Bookmark</span>
+            </Button>
+          </div>
+
+          {/* Quick Comment Input */}
+          <div className="mt-4 flex space-x-2">
+            <Input
+              placeholder="Write a comment..."
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              className="flex-1"
+              onKeyPress={(e) => e.key === 'Enter' && handleAddComment()}
+            />
+            <Button 
+              size="sm" 
+              onClick={handleAddComment}
+              disabled={!comment.trim() || isSubmittingComment}
+            >
+              {isSubmittingComment ? 'Posting...' : 'Post'}
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Modals */}
+      {/* Comments Modal */}
       <CommentsModal 
         isOpen={showComments} 
         onClose={() => setShowComments(false)} 
         postId={post.id}
-        postAuthor={post.author.name}
+        post={post}
       />
+
+      {/* Share Modal */}
       <ShareModal 
         isOpen={showShare} 
         onClose={() => setShowShare(false)} 
-        postContent={post.content}
-        postAuthor={post.author.name}
+        post={post}
       />
     </>
   );
@@ -266,82 +353,182 @@ const SocialPost = ({ post, onLike, onBookmark, onViewProfile }) => {
 
 // Social Sidebar Component (inline)
 const SocialSidebar = () => {
-  const trendingTopics = [
-    { tag: 'React', posts: '2.5k posts' },
-    { tag: 'JavaScript', posts: '1.8k posts' },
-    { tag: 'WebDev', posts: '3.2k posts' },
-    { tag: 'UI/UX', posts: '1.1k posts' },
-    { tag: 'Learning', posts: '945 posts' }
-  ];
+  const { user } = useAuth();
+  const [trendingTopics, setTrendingTopics] = useState([]);
+  const [suggestedUsers, setSuggestedUsers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [followingStates, setFollowingStates] = useState({});
+  const [followLoading, setFollowLoading] = useState({});
+  const [selectedTopic, setSelectedTopic] = useState(null);
 
-  const suggestedConnections = [
-    { name: 'Emily Parker', role: 'UX Designer', mutualConnections: 12 },
-    { name: 'David Kim', role: 'Frontend Developer', mutualConnections: 8 },
-    { name: 'Lisa Wong', role: 'Product Manager', mutualConnections: 15 }
-  ];
+  const fetchSidebarData = async () => {
+    try {
+      const [topicsResponse, usersResponse] = await Promise.all([
+        apiService.getTrendingTopics(),
+        apiService.getSuggestedUsers()
+      ]);
+      
+      setTrendingTopics(topicsResponse.topics || []);
+      setSuggestedUsers(usersResponse.suggestedUsers || []);
+    } catch (error) {
+      console.error('Error fetching sidebar data:', error);
+      
+      // Try to fetch trending topics separately if the combined request fails
+      try {
+        const topicsResponse = await apiService.getTrendingTopics();
+        setTrendingTopics(topicsResponse.topics || []);
+      } catch (topicsError) {
+        console.error('Error fetching trending topics:', topicsError);
+        // Fallback to mock trending topics
+        setTrendingTopics([
+          { tag: 'SkillSwap', posts: '15 posts' },
+          { tag: 'Learning', posts: '8 posts' },
+          { tag: 'Community', posts: '6 posts' }
+        ]);
+      }
+
+      // Try to fetch suggested users separately if the combined request fails
+      try {
+        const usersResponse = await apiService.getSuggestedUsers();
+        setSuggestedUsers(usersResponse.suggestedUsers || []);
+      } catch (usersError) {
+        console.error('Error fetching suggested users:', usersError);
+        // Fallback to mock suggested users
+        setSuggestedUsers([
+          {
+            id: 1,
+            name: 'Alex Johnson',
+            profilePhoto: null,
+            bio: 'Full-stack developer passionate about teaching',
+            skillsOffered: [{ skillName: 'React' }, { skillName: 'Node.js' }],
+            mutualConnections: 3,
+            followersCount: 45,
+            followingCount: 23
+          }
+        ]);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!user) return; // Don't fetch data if user is not authenticated
+    fetchSidebarData();
+  }, [user]);
+
+  const handleFollow = async (userId, userName) => {
+    try {
+      setFollowLoading(prev => ({ ...prev, [userId]: true }));
+      
+      const response = await apiService.followUser(userId);
+      
+      // Update the following state
+      setFollowingStates(prev => ({
+        ...prev,
+        [userId]: response.isFollowing
+      }));
+
+      // Update the suggested users list to remove the followed user
+      if (response.isFollowing) {
+        setSuggestedUsers(prev => prev.filter(user => user.id !== userId));
+        toast.success(`You are now following ${userName}`);
+      } else {
+        toast.success(`You unfollowed ${userName}`);
+      }
+    } catch (error) {
+      console.error('Error following user:', error);
+      toast.error('Failed to follow user');
+    } finally {
+      setFollowLoading(prev => ({ ...prev, [userId]: false }));
+    }
+  };
+
+  const handleTopicClick = (topic) => {
+    setSelectedTopic(topic);
+    toast.success(`Searching for posts with #${topic.tag}`);
+    // In a real app, this would navigate to a search/filter view
+    // For now, we'll just show a toast message
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Loading...</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center space-x-3">
-            <Avatar className="h-12 w-12">
-              <AvatarFallback>JD</AvatarFallback>
-            </Avatar>
-            <div>
-              <h3 className="font-semibold">John Doe</h3>
-              <p className="text-sm text-muted-foreground">Software Engineer</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-2 mt-4 text-center">
-            <div>
-              <div className="font-semibold">248</div>
-              <div className="text-xs text-muted-foreground">Posts</div>
-            </div>
-            <div>
-              <div className="font-semibold">1.2k</div>
-              <div className="text-xs text-muted-foreground">Following</div>
-            </div>
-            <div>
-              <div className="font-semibold">890</div>
-              <div className="text-xs text-muted-foreground">Followers</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
+      {/* Trending Topics */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center">
-            <TrendingUp className="h-5 w-5 mr-2" />
-            Trending
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center space-x-2">
+              <TrendingUp className="h-5 w-5" />
+              <span>Trending Topics</span>
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setIsLoading(true);
+                fetchSidebarData();
+              }}
+              disabled={isLoading}
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          {trendingTopics.map((topic, index) => (
-            <div key={index} className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Hash className="h-4 w-4 text-primary" />
-                <span className="font-medium">{topic.tag}</span>
-              </div>
-              <Badge variant="secondary" className="text-xs">
-                {topic.posts}
-              </Badge>
+          {trendingTopics.length === 0 ? (
+            <div className="text-center py-4">
+              <TrendingUp className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">No trending topics yet</p>
+              <p className="text-xs text-muted-foreground mt-1">Start posting with hashtags to see trends!</p>
             </div>
-          ))}
+          ) : (
+            trendingTopics.map((topic, index) => (
+              <div 
+                key={index} 
+                className="flex items-center justify-between hover:bg-muted/50 p-2 rounded-md transition-colors cursor-pointer"
+                onClick={() => handleTopicClick(topic)}
+              >
+                <div className="flex items-center space-x-2">
+                  <Hash className="h-4 w-4 text-primary" />
+                  <span className="font-medium">#{topic.tag}</span>
+                </div>
+                <span className="text-sm text-muted-foreground">{topic.posts}</span>
+              </div>
+            ))
+          )}
         </CardContent>
       </Card>
 
+      {/* Suggested Users */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center">
-            <Users className="h-5 w-5 mr-2" />
-            People You May Know
+          <CardTitle className="flex items-center space-x-2">
+            <Users className="h-5 w-5" />
+            <span>People You May Know</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {suggestedConnections.map((person, index) => (
-            <div key={index} className="space-y-2">
+          {suggestedUsers.length === 0 ? (
+            <div className="text-center py-4">
+              <Users className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">No suggested users at the moment</p>
+              <p className="text-xs text-muted-foreground mt-1">Check back later for new connections!</p>
+            </div>
+          ) : (
+            suggestedUsers.map((person) => (
+            <div key={person.id} className="space-y-2">
               <div className="flex items-center space-x-3">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback>
@@ -350,17 +537,37 @@ const SocialSidebar = () => {
                 </Avatar>
                 <div className="flex-1">
                   <div className="font-medium text-sm">{person.name}</div>
-                  <div className="text-xs text-muted-foreground">{person.role}</div>
+                  <div className="text-xs text-muted-foreground">{person.bio}</div>
+                  {person.skillsOffered && person.skillsOffered.length > 0 && (
+                    <div className="text-xs text-muted-foreground">
+                      Skills: {person.skillsOffered.slice(0, 2).map(skill => skill.skillName).join(', ')}
+                      {person.skillsOffered.length > 2 && '...'}
+                    </div>
+                  )}
                   <div className="text-xs text-muted-foreground">
-                    {person.mutualConnections} mutual connections
+                    {person.followersCount || 0} followers
                   </div>
                 </div>
               </div>
-              <Button size="sm" variant="outline" className="w-full">
-                Connect
+              <Button 
+                size="sm" 
+                variant={followingStates[person.id] ? "default" : "outline"} 
+                className="w-full"
+                onClick={() => handleFollow(person.id, person.name)}
+                disabled={!user || followLoading[person.id]}
+              >
+                {followLoading[person.id] ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
+                    Following...
+                  </div>
+                ) : (
+                  followingStates[person.id] ? 'Following' : 'Follow'
+                )}
               </Button>
             </div>
-          ))}
+          ))
+          )}
         </CardContent>
       </Card>
     </div>
@@ -369,104 +576,89 @@ const SocialSidebar = () => {
 
 // Social Feed Component (inline)
 const SocialFeed = ({ onViewProfile }) => {
-  const [posts, setPosts] = useState([
-    {
-      id: '1',
-      author: {
-        id: 'alex_j',
-        name: 'Alex Johnson',
-        username: '@alexj',
-        avatar: '/placeholder.svg',
-        verified: true
-      },
-      content: 'Just finished an amazing React workshop! The way hooks can simplify state management is incredible. #React #WebDev #Learning',
-      timestamp: '2h',
-      likes: 24,
-      comments: 8,
-      shares: 3,
-      image: '/placeholder.svg',
-      liked: false,
-      bookmarked: false
-    },
-    {
-      id: '2',
-      author: {
-        id: 'sarah_c',
-        name: 'Sarah Chen',
-        username: '@sarahc',
-        avatar: '/placeholder.svg',
-        verified: false
-      },
-      content: 'Working on a new design system for our team. Sometimes the simplest solutions are the best ones. Focus on clarity over complexity! 🎨',
-      timestamp: '4h',
-      likes: 15,
-      comments: 4,
-      shares: 2,
-      image: null,
-      liked: true,
-      bookmarked: false
-    },
-    {
-      id: '3',
-      author: {
-        id: 'mike_r',
-        name: 'Mike Rodriguez',
-        username: '@mikingdev',
-        avatar: '/placeholder.svg',
-        verified: true
-      },
-      content: 'Hot take: Clean code isn\'t just about making it work, it\'s about making it readable. Always optimize for clarity first, performance second. Remember: you write code once, but you (and others) read it dozens of times.\n\nWhat are your thoughts on code readability vs. performance optimization?',
-      timestamp: '6h',
-      likes: 42,
-      comments: 12,
-      shares: 8,
-      image: null,
-      liked: false,
-      bookmarked: true
+  const { user } = useAuth();
+  const [posts, setPosts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    if (!user) return; // Don't fetch data if user is not authenticated
+    fetchPosts();
+  }, [user]);
+
+  const fetchPosts = async () => {
+    try {
+      setIsLoading(true);
+      const response = await apiService.getPublicFeed({ page, limit: 10 });
+      setPosts(response.posts || []);
+      setHasMore(response.pagination?.hasMore || false);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      toast.error('Failed to load posts');
+      // Fallback to mock data
+      setPosts([
+        {
+          id: '1',
+          author: {
+            id: 'alex_j',
+            name: 'Alex Johnson',
+            profilePhoto: null,
+            isVerified: true
+          },
+          content: 'Just finished an amazing React workshop! The way hooks can simplify state management is incredible. #React #WebDev #Learning',
+          timestamp: '2h',
+          likes: 24,
+          comments: 8,
+          shares: 3,
+          imageUrl: null,
+          liked: false,
+          bookmarked: false
+        }
+      ]);
+    } finally {
+      setIsLoading(false);
     }
-  ]);
+  };
 
-  const handleLike = (postId) => {
+  const handleLike = (postId, liked, likesCount) => {
     setPosts(posts.map(post => 
       post.id === postId 
-        ? { 
-            ...post, 
-            liked: !post.liked, 
-            likes: post.liked ? post.likes - 1 : post.likes + 1
-          }
+        ? { ...post, liked, likes: likesCount }
         : post
     ));
   };
 
-  const handleBookmark = (postId) => {
+  const handleBookmark = (postId, bookmarked) => {
     setPosts(posts.map(post => 
       post.id === postId 
-        ? { ...post, bookmarked: !post.bookmarked }
+        ? { ...post, bookmarked }
         : post
     ));
   };
 
-  const handleAddPost = (content, image = null) => {
-    const newPost = {
-      id: (posts.length + 1).toString(),
-      author: {
-        id: 'current_user',
-        name: 'Current User',
-        username: '@currentuser',
-        avatar: '/placeholder.svg',
-        verified: false
-      },
-      content,
-      timestamp: 'now',
-      likes: 0,
-      comments: 0,
-      shares: 0,
-      image,
-      liked: false,
-      bookmarked: false
-    };
+  const handleAddPost = (newPost) => {
     setPosts([newPost, ...posts]);
   };
+
+  const handleAddComment = (postId, newComment) => {
+    setPosts(posts.map(post => 
+      post.id === postId 
+        ? { ...post, comments: post.comments + 1 }
+        : post
+    ));
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading posts...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -480,9 +672,24 @@ const SocialFeed = ({ onViewProfile }) => {
             onLike={handleLike}
             onBookmark={handleBookmark}
             onViewProfile={onViewProfile}
+            onAddComment={handleAddComment}
           />
         ))}
       </div>
+
+      {hasMore && (
+        <div className="text-center">
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              setPage(page + 1);
+              fetchPosts();
+            }}
+          >
+            Load More Posts
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
