@@ -1,0 +1,462 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int       @id @default(autoincrement())
+  name           String
+  email          String    @unique
+  passwordHash   String
+  location       String?
+  bio            String?   @db.VarChar(250)
+  profilePhoto   String?
+  isPublic       Boolean   @default(true)
+  isVerified     Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Related entities
+  skillsOffered  SkillOffered[]
+  skillsWanted   SkillWanted[]
+  availability   Availability?
+  reputation     Reputation?
+  credits        CreditBalance?
+  socialProfiles SocialProfile?
+  socialStats    SocialStats?
+
+  // Swap relationships
+  swapRequestsSent     SwapRequest[] @relation("Requester")
+  swapRequestsReceived SwapRequest[] @relation("Receiver")
+  reviewsWritten       Review[]      @relation("Reviewer")
+  reviewsReceived      Review[]      @relation("Reviewee")
+
+  // Gamification
+  achievements   UserAchievement[]
+  endorsements   Endorsement[]     @relation("EndorsementReceiver")
+  givenEndorsements Endorsement[]  @relation("EndorsementGiver")
+
+  // Communication
+  sentMessages     Message[]        @relation("MessageSender")
+  receivedMessages Message[]        @relation("MessageReceiver")
+  notifications    Notification[]
+
+  // Admin relationships
+  adminMessages    AdminMessage[]   @relation("AdminMessageUsers")
+  reportsMade      Report[]         @relation("ReportMaker")
+  reportsReceived  Report[]         @relation("ReportedUser")
+
+  role           UserRole  @default(USER)
+  status         UserStatus @default(ACTIVE)
+
+  @@map("users")
+}
+
+model SkillOffered {
+  id          Int     @id @default(autoincrement())
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      Int
+  skillName   String
+  category    String
+  level       SkillLevel
+  description String?
+  endorsed    Boolean @default(false)
+  verified    Boolean @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("skills_offered")
+}
+
+model SkillWanted {
+  id          Int     @id @default(autoincrement())
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      Int
+  skillName   String
+  priority    PriorityLevel
+  targetLevel SkillLevel?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("skills_wanted")
+}
+
+model Availability {
+  id          Int      @id @default(autoincrement())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      Int      @unique
+  timeSlots   String[]
+  format      SessionFormat
+  duration    String
+  timezone    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("availability")
+}
+
+model Reputation {
+  id            Int      @id @default(autoincrement())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int      @unique
+  overallRating Float    @default(0)
+  totalRatings  Int      @default(0)
+  trustScore    Float    @default(0)
+  badges        String[]
+  completedSwaps Int     @default(0)
+  responseTime  Float?   // Average response time in hours
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("reputation")
+}
+
+model CreditBalance {
+  id          Int      @id @default(autoincrement())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      Int      @unique
+  earned      Int      @default(0)
+  spent       Int      @default(0)
+  balance     Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  transactions CreditTransaction[]
+
+  @@map("credit_balance")
+}
+
+model CreditTransaction {
+  id          Int      @id @default(autoincrement())
+  creditBalance CreditBalance @relation(fields: [creditBalanceId], references: [id])
+  creditBalanceId Int
+  amount      Int
+  type        TransactionType
+  description String?
+  swapRequestId Int?
+  createdAt   DateTime @default(now())
+
+  @@map("credit_transactions")
+}
+
+model SocialProfile {
+  id          Int      @id @default(autoincrement())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      Int      @unique
+  googleId    String?
+  facebookId  String?
+  twitterId   String?
+  linkedInId  String?
+  githubId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("social_profiles")
+}
+
+model SocialStats {
+  id            Int      @id @default(autoincrement())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int      @unique
+  profileShares Int      @default(0)
+  skillShares   Int      @default(0)
+  reviewShares  Int      @default(0)
+  referrals     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("social_stats")
+}
+
+model SwapRequest {
+  id              Int       @id @default(autoincrement())
+  requester       User      @relation("Requester", fields: [requesterId], references: [id])
+  requesterId     Int
+  receiver        User      @relation("Receiver", fields: [receiverId], references: [id])
+  receiverId      Int
+  skillOffered    String
+  skillRequested  String
+  message         String?
+  proposedSchedule DateTime?
+  format          SessionFormat
+  duration        Int
+  status          SwapStatus @default(PENDING)
+  priority        PriorityLevel @default(MEDIUM)
+  
+  scheduledSession ScheduledSession?
+  completion      Completion?
+  reviews         Review[]
+  messages        Message[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  expiresAt       DateTime?
+
+  @@map("swap_requests")
+}
+
+model ScheduledSession {
+  id          Int       @id @default(autoincrement())
+  swapRequest SwapRequest @relation(fields: [swapRequestId], references: [id], onDelete: Cascade)
+  swapRequestId Int     @unique
+  date        DateTime
+  duration    Int
+  platform    String
+  meetingLink String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("scheduled_sessions")
+}
+
+model Completion {
+  id              Int       @id @default(autoincrement())
+  swapRequest     SwapRequest @relation(fields: [swapRequestId], references: [id], onDelete: Cascade)
+  swapRequestId   Int       @unique
+  completedAt     DateTime
+  creditsTransferred Int
+  sessionNotes    String?
+  createdAt       DateTime @default(now())
+
+  @@map("completions")
+}
+
+model Review {
+  id             Int       @id @default(autoincrement())
+  swapRequest    SwapRequest @relation(fields: [swapRequestId], references: [id])
+  swapRequestId  Int
+  reviewer       User      @relation("Reviewer", fields: [reviewerId], references: [id])
+  reviewerId     Int
+  reviewee       User      @relation("Reviewee", fields: [revieweeId], references: [id])
+  revieweeId     Int
+  overall        Int
+  teachingQuality Int?
+  reliability    Int?
+  communication  Int?
+  review         String?   @db.VarChar(500)
+  helpful        Int       @default(0)
+  socialShared   Boolean   @default(false)
+  isPublic       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("reviews")
+}
+
+model Message {
+  id          Int       @id @default(autoincrement())
+  sender      User      @relation("MessageSender", fields: [senderId], references: [id])
+  senderId    Int
+  receiver    User      @relation("MessageReceiver", fields: [receiverId], references: [id])
+  receiverId  Int
+  swapRequest SwapRequest? @relation(fields: [swapRequestId], references: [id])
+  swapRequestId Int?
+  content     String
+  messageType MessageType @default(TEXT)
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@map("messages")
+}
+
+model Notification {
+  id          Int       @id @default(autoincrement())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      Int
+  title       String
+  content     String
+  type        NotificationType
+  isRead      Boolean   @default(false)
+  actionUrl   String?
+  createdAt   DateTime  @default(now())
+
+  @@map("notifications")
+}
+
+model Achievement {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String
+  badgeIcon   String?
+  category    String
+  criteria    String    // JSON string describing achievement criteria
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            Int       @id @default(autoincrement())
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+  achievementId Int
+  earnedAt      DateTime  @default(now())
+  isVisible     Boolean   @default(true)
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
+}
+
+model Endorsement {
+  id           Int       @id @default(autoincrement())
+  endorser     User      @relation("EndorsementGiver", fields: [endorserId], references: [id])
+  endorserId   Int
+  endorsee     User      @relation("EndorsementReceiver", fields: [endorseeId], references: [id])
+  endorseeId   Int
+  skillName    String
+  message      String?
+  isPublic     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+
+  @@unique([endorserId, endorseeId, skillName])
+  @@map("endorsements")
+}
+
+model AdminMessage {
+  id          Int       @id @default(autoincrement())
+  title       String
+  message     String
+  type        MessageType @default(ANNOUNCEMENT)
+  targetUsers User[]    @relation("AdminMessageUsers")
+  createdBy   Int
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  scheduledFor DateTime?
+
+  @@map("admin_messages")
+}
+
+model Report {
+  id           Int       @id @default(autoincrement())
+  reporter     User      @relation("ReportMaker", fields: [reporterId], references: [id])
+  reporterId   Int
+  reportedUser User      @relation("ReportedUser", fields: [reportedUserId], references: [id])
+  reportedUserId Int
+  reason       String
+  description  String?
+  status       ReportStatus @default(PENDING)
+  resolvedBy   Int?
+  resolvedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@map("reports")
+}
+
+model SkillCategory {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  description String?
+  icon        String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  @@map("skill_categories")
+}
+
+model PlatformAnalytics {
+  id              Int       @id @default(autoincrement())
+  date            DateTime  @unique
+  totalUsers      Int
+  activeUsers     Int
+  newUsers        Int
+  totalSwaps      Int
+  completedSwaps  Int
+  averageRating   Float
+  totalCredits    Int
+  createdAt       DateTime  @default(now())
+
+  @@map("platform_analytics")
+}
+
+// Enums
+
+enum UserRole {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+  INACTIVE
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum PriorityLevel {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum SessionFormat {
+  IN_PERSON
+  VIRTUAL
+  HYBRID
+}
+
+enum SwapStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+  COMPLETED
+  EXPIRED
+}
+
+enum MessageType {
+  TEXT
+  FILE
+  ANNOUNCEMENT
+  SYSTEM
+}
+
+enum NotificationType {
+  SWAP_REQUEST
+  SWAP_ACCEPTED
+  SWAP_DECLINED
+  SWAP_CANCELLED
+  SWAP_COMPLETED
+  REVIEW_RECEIVED
+  ACHIEVEMENT_EARNED
+  CREDIT_RECEIVED
+  SYSTEM_MESSAGE
+}
+
+enum TransactionType {
+  EARNED
+  SPENT
+  BONUS
+  REFUND
+}
+
+enum ReportStatus {
+  PENDING
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
