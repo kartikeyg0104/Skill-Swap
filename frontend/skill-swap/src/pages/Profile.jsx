@@ -43,18 +43,9 @@ const Profile = () => {
   }, [user, navigate]);
 
   const fetchProfileData = async () => {
-    try {
-      setIsLoading(true);
-      const response = await apiService.getUserProfile();
-      setProfileData(response);
-    } catch (error) {
-      console.error('Error fetching profile data:', error);
-      toast.error('Failed to load profile data');
-      // Use user data from auth context as fallback
-      setProfileData(user);
-    } finally {
-      setIsLoading(false);
-    }
+    // Use user data from auth context since API requires authentication
+    setProfileData(user);
+    setIsLoading(false);
   };
 
   const handleProfileUpdate = async (updatedData) => {

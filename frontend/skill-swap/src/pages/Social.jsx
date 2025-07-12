@@ -363,37 +363,22 @@ const SocialSidebar = () => {
 
   const fetchSidebarData = async () => {
     try {
-      const [topicsResponse, usersResponse] = await Promise.all([
-        apiService.getTrendingTopics(),
-        apiService.getSuggestedUsers()
-      ]);
-      
-      setTrendingTopics(topicsResponse.topics || []);
-      setSuggestedUsers(usersResponse.suggestedUsers || []);
-    } catch (error) {
-      console.error('Error fetching sidebar data:', error);
-      
-      // Try to fetch trending topics separately if the combined request fails
-      try {
-        const topicsResponse = await apiService.getTrendingTopics();
+      // Only fetch data if user is authenticated
+      if (user) {
+        const [topicsResponse, usersResponse] = await Promise.all([
+          apiService.getTrendingTopics(),
+          apiService.getSuggestedUsers()
+        ]);
+        
         setTrendingTopics(topicsResponse.topics || []);
-      } catch (topicsError) {
-        console.error('Error fetching trending topics:', topicsError);
-        // Fallback to mock trending topics
+        setSuggestedUsers(usersResponse.suggestedUsers || []);
+      } else {
+        // Use fallback data for non-authenticated users
         setTrendingTopics([
           { tag: 'SkillSwap', posts: '15 posts' },
           { tag: 'Learning', posts: '8 posts' },
           { tag: 'Community', posts: '6 posts' }
         ]);
-      }
-
-      // Try to fetch suggested users separately if the combined request fails
-      try {
-        const usersResponse = await apiService.getSuggestedUsers();
-        setSuggestedUsers(usersResponse.suggestedUsers || []);
-      } catch (usersError) {
-        console.error('Error fetching suggested users:', usersError);
-        // Fallback to mock suggested users
         setSuggestedUsers([
           {
             id: 1,
@@ -407,15 +392,35 @@ const SocialSidebar = () => {
           }
         ]);
       }
+    } catch (error) {
+      console.error('Error fetching sidebar data:', error);
+      
+      // Use fallback data on error
+      setTrendingTopics([
+        { tag: 'SkillSwap', posts: '15 posts' },
+        { tag: 'Learning', posts: '8 posts' },
+        { tag: 'Community', posts: '6 posts' }
+      ]);
+      setSuggestedUsers([
+        {
+          id: 1,
+          name: 'Alex Johnson',
+          profilePhoto: null,
+          bio: 'Full-stack developer passionate about teaching',
+          skillsOffered: [{ skillName: 'React' }, { skillName: 'Node.js' }],
+          mutualConnections: 3,
+          followersCount: 45,
+          followingCount: 23
+        }
+      ]);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!user) return; // Don't fetch data if user is not authenticated
     fetchSidebarData();
-  }, [user]);
+  }, []); // Fetch once on component mount
 
   const handleFollow = async (userId, userName) => {
     try {
@@ -583,20 +588,43 @@ const SocialFeed = ({ onViewProfile }) => {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    if (!user) return; // Don't fetch data if user is not authenticated
     fetchPosts();
-  }, [user]);
+  }, []); // Fetch once on component mount
 
   const fetchPosts = async () => {
     try {
       setIsLoading(true);
-      const response = await apiService.getPublicFeed({ page, limit: 10 });
-      setPosts(response.posts || []);
-      setHasMore(response.pagination?.hasMore || false);
+      // Only fetch if user is authenticated
+      if (user) {
+        const response = await apiService.getPublicFeed({ page, limit: 10 });
+        setPosts(response.posts || []);
+        setHasMore(response.pagination?.hasMore || false);
+      } else {
+        // Use fallback data for non-authenticated users
+        setPosts([
+          {
+            id: '1',
+            author: {
+              id: 'alex_j',
+              name: 'Alex Johnson',
+              profilePhoto: null,
+              isVerified: true
+            },
+            content: 'Just finished an amazing React workshop! The way hooks can simplify state management is incredible. #React #WebDev #Learning',
+            timestamp: '2h',
+            likes: 24,
+            comments: 8,
+            shares: 3,
+            imageUrl: null,
+            liked: false,
+            bookmarked: false
+          }
+        ]);
+        setHasMore(false);
+      }
     } catch (error) {
       console.error('Error fetching posts:', error);
-      toast.error('Failed to load posts');
-      // Fallback to mock data
+      // Use fallback data on error
       setPosts([
         {
           id: '1',
@@ -616,6 +644,7 @@ const SocialFeed = ({ onViewProfile }) => {
           bookmarked: false
         }
       ]);
+      setHasMore(false);
     } finally {
       setIsLoading(false);
     }
@@ -702,21 +731,11 @@ const Social = () => {
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [selectedUserName, setSelectedUserName] = useState('');
 
-  useEffect(() => {
-    if (!user) {
-      navigate('/');
-    }
-  }, [user, navigate]);
-
   const handleViewProfile = (userId, userName) => {
     setSelectedUserId(userId);
     setSelectedUserName(userName);
     setShowProfileModal(true);
   };
-
-  if (!user) {
-    return null; // or a loading spinner
-  }
 
   return (
     <div className="min-h-screen bg-background">

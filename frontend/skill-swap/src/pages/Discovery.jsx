@@ -22,7 +22,7 @@ import {
   TabsList, 
   TabsTrigger
 } from '../components/ui-consolidated';
-import { SkillsManagementModal, UserProfileModal } from '../components/FeatureSections';
+import { SkillsManagementModal, UserProfileModal, SwapRequestModal } from '../components/FeatureSections';
 import { 
   Search, 
   Star, 
@@ -51,6 +51,8 @@ const Discovery = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [selectedUserName, setSelectedUserName] = useState('');
+  const [showSwapRequestModal, setShowSwapRequestModal] = useState(false);
+  const [selectedUserForSwap, setSelectedUserForSwap] = useState(null);
   
   // Data states
   const [users, setUsers] = useState([]);
@@ -163,24 +165,11 @@ const Discovery = () => {
   };
 
   const handleSkillRequest = async (userId, userName) => {
-    try {
-      // Navigate to a swap request page or open a modal
-      // For now, show a message that this feature is coming soon
-      toast.success(`Swap request feature coming soon! This would create a skill swap request with ${userName}`);
-      
-      // TODO: Implement swap request creation
-      // const swapData = {
-      //   receiverId: userId,
-      //   skillOffered: "Your skill",
-      //   skillRequested: "Their skill",
-      //   message: `Hi ${userName}, I'd like to swap skills with you!`,
-      //   format: "ONLINE",
-      //   duration: 60
-      // };
-      // await apiService.createSwapRequest(swapData);
-    } catch (error) {
-      console.error('Error sending skill request:', error);
-      toast.error('Failed to send skill request');
+    // Find the user data
+    const userData = users.find(u => u.id === userId);
+    if (userData) {
+      setSelectedUserForSwap(userData);
+      setShowSwapRequestModal(true);
     }
   };
 
@@ -422,6 +411,15 @@ const Discovery = () => {
         onClose={() => setShowProfileModal(false)} 
         userId={selectedUserId}
         userName={selectedUserName}
+      />
+      
+      <SwapRequestModal
+        isOpen={showSwapRequestModal}
+        onClose={() => {
+          setShowSwapRequestModal(false);
+          setSelectedUserForSwap(null);
+        }}
+        selectedUser={selectedUserForSwap}
       />
     </div>
   );

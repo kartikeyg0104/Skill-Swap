@@ -4,6 +4,7 @@ import {
   Button,
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -53,7 +54,8 @@ import {
   Twitter,
   Linkedin,
   Copy,
-  Camera
+  Camera,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import apiService from '../services/api';
@@ -1315,10 +1317,10 @@ export const UserProfileModal = ({ isOpen, onClose, userId, userName }) => {
   if (!profileUser) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[80vh]">
+        <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col p-0">
           <DialogTitle className="sr-only">Loading User Profile</DialogTitle>
           <DialogDescription className="sr-only">Loading user profile information</DialogDescription>
-          <div className="flex items-center justify-center h-64">
+          <div className="flex items-center justify-center h-64 flex-1">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
               <p>Loading profile...</p>
@@ -1331,297 +1333,302 @@ export const UserProfileModal = ({ isOpen, onClose, userId, userName }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden p-0">
+      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col p-0">
         <DialogTitle className="sr-only">User Profile</DialogTitle>
         <DialogDescription className="sr-only">View detailed profile information for {profileUser.name}</DialogDescription>
-        {/* Cover Photo and Profile Header */}
-        <div className="relative">
-          <div className="h-32 bg-gradient-to-r from-blue-500 to-purple-600"></div>
-          <div className="absolute -bottom-16 left-6">
-            <Avatar className="h-32 w-32 border-4 border-white">
-              <AvatarImage src={profileUser.avatar} />
-              <AvatarFallback className="text-2xl">{profileUser.name[0]}</AvatarFallback>
-            </Avatar>
-          </div>
-        </div>
-
-        {/* Profile Info */}
-        <div className="pt-20 px-6 pb-4">
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="flex items-center space-x-2">
-                <h1 className="text-2xl font-bold">{profileUser.name}</h1>
-                {profileUser.verified && (
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-                    <Check className="h-3 w-3 mr-1" />
-                    Verified
-                  </Badge>
-                )}
-              </div>
-              <p className="text-muted-foreground">{profileUser.username}</p>
-              <p className="mt-2 max-w-md">{profileUser.bio}</p>
-              <div className="flex items-center space-x-4 mt-3 text-sm text-muted-foreground">
-                <div className="flex items-center space-x-1">
-                  <MapPin className="h-4 w-4" />
-                  <span>{profileUser.location}</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Calendar className="h-4 w-4" />
-                  <span>{profileUser.joinedDate}</span>
-                </div>
-                {profileUser.website && (
-                  <div className="flex items-center space-x-1">
-                    <Link className="h-4 w-4" />
-                    <a href={profileUser.website} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                      Website
-                    </a>
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center space-x-6 mt-3">
-                <span className="text-sm">
-                  <strong>{profileUser.followers}</strong> Followers
-                </span>
-                <span className="text-sm">
-                  <strong>{profileUser.following}</strong> Following
-                </span>
-                <span className="text-sm">
-                  <strong>{profileUser.posts}</strong> Posts
-                </span>
-              </div>
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {/* Cover Photo and Profile Header */}
+          <div className="relative">
+            <div className="h-32 bg-gradient-to-r from-blue-500 to-purple-600"></div>
+            <div className="absolute -bottom-16 left-6">
+              <Avatar className="h-32 w-32 border-4 border-white overflow-hidden">
+                <AvatarImage
+                  src={profileUser.avatar || '/Portrait_Placeholder.png'}
+                  className="object-contain w-full h-full"
+                />
+                <AvatarFallback className="text-2xl">{profileUser.name[0]}</AvatarFallback>
+              </Avatar>
             </div>
-            
-            {profileUser.id !== user?.id && (
-              <div className="flex space-x-2">
-                <Button
-                  variant={isFollowing ? "outline" : "default"}
-                  onClick={toggleFollow}
-                >
-                  {isFollowing ? 'Unfollow' : 'Follow'}
-                </Button>
-                <Button variant="outline" onClick={sendMessage}>
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Message
-                </Button>
-              </div>
-            )}
           </div>
-        </div>
 
-        {/* Tabs */}
-        <div className="border-t">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="px-6">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="skills">Skills</TabsTrigger>
-              <TabsTrigger value="experience">Experience</TabsTrigger>
-              <TabsTrigger value="posts">Posts</TabsTrigger>
-            </TabsList>
-
-            <div className="overflow-y-auto max-h-[40vh] mt-4">
-              <TabsContent value="overview" className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Top Skills</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        {profileUser.skills.length > 0 ? (
-                          profileUser.skills.slice(0, 3).map((skill, index) => (
-                          <div key={index} className="flex justify-between items-center">
-                            <span className="font-medium">{skill.name}</span>
-                            <Badge variant="secondary">{skill.level}</Badge>
-                          </div>
-                          ))
-                        ) : (
-                          <p className="text-muted-foreground text-sm">No skills offered yet</p>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Reputation & Credits</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">Reputation Level</span>
-                          <Badge variant="secondary">Level {profileUser.reputation.level}</Badge>
-                          </div>
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">Total Points</span>
-                          <span>{profileUser.reputation.totalPoints}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">Credits Balance</span>
-                          <span>{profileUser.credits.balance}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">Total Earned</span>
-                          <span>{profileUser.credits.totalEarned}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+          {/* Profile Info */}
+          <div className="pt-20 px-6 pb-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h1 className="text-2xl font-bold">{profileUser.name}</h1>
+                  {profileUser.verified && (
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                      <Check className="h-3 w-3 mr-1" />
+                      Verified
+                    </Badge>
+                  )}
                 </div>
+                <p className="text-muted-foreground">{profileUser.username}</p>
+                <p className="mt-2 max-w-md">{profileUser.bio}</p>
+                <div className="flex items-center space-x-4 mt-3 text-sm text-muted-foreground">
+                  <div className="flex items-center space-x-1">
+                    <MapPin className="h-4 w-4" />
+                    <span>{profileUser.location}</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <Calendar className="h-4 w-4" />
+                    <span>{profileUser.joinedDate}</span>
+                  </div>
+                  {profileUser.website && (
+                    <div className="flex items-center space-x-1">
+                      <Link className="h-4 w-4" />
+                      <a href={profileUser.website} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                        Website
+                      </a>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center space-x-6 mt-3">
+                  <span className="text-sm">
+                    <strong>{profileUser.followers}</strong> Followers
+                  </span>
+                  <span className="text-sm">
+                    <strong>{profileUser.following}</strong> Following
+                  </span>
+                  <span className="text-sm">
+                    <strong>{profileUser.posts}</strong> Posts
+                  </span>
+                </div>
+              </div>
+              
+              {profileUser.id !== user?.id && (
+                <div className="flex space-x-2">
+                  <Button
+                    variant={isFollowing ? "outline" : "default"}
+                    onClick={toggleFollow}
+                  >
+                    {isFollowing ? 'Unfollow' : 'Follow'}
+                  </Button>
+                  <Button variant="outline" onClick={sendMessage}>
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Message
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
 
-                {/* Skills Wanted Summary */}
-                {profileUser.skillsWanted.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Skills Wanted</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-wrap gap-2">
-                        {profileUser.skillsWanted.slice(0, 5).map((skill, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {skill.name} ({skill.priority})
-                          </Badge>
-                        ))}
-                        {profileUser.skillsWanted.length > 5 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{profileUser.skillsWanted.length - 5} more
-                          </Badge>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
+          {/* Tabs */}
+          <div className="border-t">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="px-6">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="skills">Skills</TabsTrigger>
+                <TabsTrigger value="experience">Experience</TabsTrigger>
+                <TabsTrigger value="posts">Posts</TabsTrigger>
+              </TabsList>
 
-              <TabsContent value="skills" className="space-y-6">
-                {/* Skills Offered */}
-                <div>
-                  <h3 className="font-semibold mb-3 text-green-700">Skills Offered</h3>
-                <div className="grid gap-3">
-                    {profileUser.skills.length > 0 ? (
-                      profileUser.skills.map((skill, index) => (
-                    <Card key={index}>
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <h3 className="font-medium">{skill.name}</h3>
-                                <p className="text-sm text-muted-foreground">Level: {skill.level}</p>
+              <div className="overflow-y-auto max-h-[40vh] mt-4">
+                <TabsContent value="overview" className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Top Skills</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          {profileUser.skills.length > 0 ? (
+                            profileUser.skills.slice(0, 3).map((skill, index) => (
+                            <div key={index} className="flex justify-between items-center">
+                              <span className="font-medium">{skill.name}</span>
+                              <Badge variant="secondary">{skill.level}</Badge>
+                            </div>
+                            ))
+                          ) : (
+                            <p className="text-muted-foreground text-sm">No skills offered yet</p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Reputation & Credits</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">Reputation Level</span>
+                            <Badge variant="secondary">Level {profileUser.reputation.level}</Badge>
+                            </div>
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">Total Points</span>
+                            <span>{profileUser.reputation.totalPoints}</span>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium">{skill.endorsements} endorsements</p>
-                            <Button variant="outline" size="sm" className="mt-1">
-                              Endorse
-                            </Button>
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">Credits Balance</span>
+                            <span>{profileUser.credits.balance}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">Total Earned</span>
+                            <span>{profileUser.credits.totalEarned}</span>
                           </div>
                         </div>
                       </CardContent>
                     </Card>
-                      ))
-                    ) : (
-                      <p className="text-muted-foreground text-center py-4">No skills offered yet</p>
-                    )}
                   </div>
-                </div>
 
-                {/* Skills Wanted */}
-                <div>
-                  <h3 className="font-semibold mb-3 text-blue-700">Skills Wanted</h3>
+                  {/* Skills Wanted Summary */}
+                  {profileUser.skillsWanted.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Skills Wanted</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-wrap gap-2">
+                          {profileUser.skillsWanted.slice(0, 5).map((skill, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {skill.name} ({skill.priority})
+                            </Badge>
+                          ))}
+                          {profileUser.skillsWanted.length > 5 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{profileUser.skillsWanted.length - 5} more
+                            </Badge>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="skills" className="space-y-6">
+                  {/* Skills Offered */}
+                  <div>
+                    <h3 className="font-semibold mb-3 text-green-700">Skills Offered</h3>
                   <div className="grid gap-3">
-                    {profileUser.skillsWanted.length > 0 ? (
-                      profileUser.skillsWanted.map((skill, index) => (
-                        <Card key={index}>
-                          <CardContent className="p-4">
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <h3 className="font-medium">{skill.name}</h3>
-                                <p className="text-sm text-muted-foreground">
-                                  Priority: {skill.priority} • Target Level: {skill.targetLevel}
-                                </p>
+                      {profileUser.skills.length > 0 ? (
+                        profileUser.skills.map((skill, index) => (
+                      <Card key={index}>
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <h3 className="font-medium">{skill.name}</h3>
+                                  <p className="text-sm text-muted-foreground">Level: {skill.level}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-medium">{skill.endorsements} endorsements</p>
+                              <Button variant="outline" size="sm" className="mt-1">
+                                Endorse
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground text-center py-4">No skills offered yet</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Skills Wanted */}
+                  <div>
+                    <h3 className="font-semibold mb-3 text-blue-700">Skills Wanted</h3>
+                    <div className="grid gap-3">
+                      {profileUser.skillsWanted.length > 0 ? (
+                        profileUser.skillsWanted.map((skill, index) => (
+                          <Card key={index}>
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <h3 className="font-medium">{skill.name}</h3>
+                                  <p className="text-sm text-muted-foreground">
+                                    Priority: {skill.priority} • Target Level: {skill.targetLevel}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <Button variant="outline" size="sm">
+                                    Offer to Teach
+                                  </Button>
+                                </div>
                               </div>
-                              <div className="text-right">
-                                <Button variant="outline" size="sm">
-                                  Offer to Teach
-                                </Button>
+                            </CardContent>
+                          </Card>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground text-center py-4">No skills wanted yet</p>
+                      )}
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="experience" className="space-y-4">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-semibold mb-3">Work Experience</h3>
+                      {profileUser.experience.length > 0 ? (
+                        profileUser.experience.map((exp, index) => (
+                        <Card key={index} className="mb-3">
+                          <CardContent className="p-4">
+                            <div className="flex items-start space-x-3">
+                              <Briefcase className="h-5 w-5 mt-1 text-muted-foreground" />
+                              <div>
+                                <h4 className="font-medium">{exp.title}</h4>
+                                <p className="text-sm text-muted-foreground">{exp.company} • {exp.duration}</p>
+                                <p className="text-sm mt-2">{exp.description}</p>
                               </div>
                             </div>
                           </CardContent>
                         </Card>
-                      ))
-                    ) : (
-                      <p className="text-muted-foreground text-center py-4">No skills wanted yet</p>
-                    )}
-                  </div>
-                </div>
-              </TabsContent>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground text-center py-4">No work experience listed yet</p>
+                      )}
+                    </div>
 
-              <TabsContent value="experience" className="space-y-4">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-semibold mb-3">Work Experience</h3>
-                    {profileUser.experience.length > 0 ? (
-                      profileUser.experience.map((exp, index) => (
-                      <Card key={index} className="mb-3">
-                        <CardContent className="p-4">
-                          <div className="flex items-start space-x-3">
-                            <Briefcase className="h-5 w-5 mt-1 text-muted-foreground" />
-                            <div>
-                              <h4 className="font-medium">{exp.title}</h4>
-                              <p className="text-sm text-muted-foreground">{exp.company} • {exp.duration}</p>
-                              <p className="text-sm mt-2">{exp.description}</p>
+                    <div>
+                      <h3 className="font-semibold mb-3">Education</h3>
+                      {profileUser.education.length > 0 ? (
+                        profileUser.education.map((edu, index) => (
+                        <Card key={index} className="mb-3">
+                          <CardContent className="p-4">
+                            <div className="flex items-start space-x-3">
+                              <GraduationCap className="h-5 w-5 mt-1 text-muted-foreground" />
+                              <div>
+                                <h4 className="font-medium">{edu.degree}</h4>
+                                <p className="text-sm text-muted-foreground">{edu.school} • {edu.year}</p>
+                              </div>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      ))
-                    ) : (
-                      <p className="text-muted-foreground text-center py-4">No work experience listed yet</p>
-                    )}
+                          </CardContent>
+                        </Card>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground text-center py-4">No education listed yet</p>
+                      )}
+                    </div>
                   </div>
+                </TabsContent>
 
-                  <div>
-                    <h3 className="font-semibold mb-3">Education</h3>
-                    {profileUser.education.length > 0 ? (
-                      profileUser.education.map((edu, index) => (
-                      <Card key={index} className="mb-3">
-                        <CardContent className="p-4">
-                          <div className="flex items-start space-x-3">
-                            <GraduationCap className="h-5 w-5 mt-1 text-muted-foreground" />
-                            <div>
-                              <h4 className="font-medium">{edu.degree}</h4>
-                              <p className="text-sm text-muted-foreground">{edu.school} • {edu.year}</p>
-                            </div>
+                <TabsContent value="posts" className="space-y-4">
+                  {profileUser.recentPosts.length > 0 ? (
+                    profileUser.recentPosts.map((post) => (
+                    <Card key={post.id}>
+                      <CardContent className="p-4">
+                        <p className="mb-3">{post.content}</p>
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <span>{post.timestamp}</span>
+                          <div className="flex space-x-4">
+                            <span>{post.likes} likes</span>
+                            <span>{post.comments} comments</span>
                           </div>
-                        </CardContent>
-                      </Card>
-                      ))
-                    ) : (
-                      <p className="text-muted-foreground text-center py-4">No education listed yet</p>
-                    )}
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="posts" className="space-y-4">
-                {profileUser.recentPosts.length > 0 ? (
-                  profileUser.recentPosts.map((post) => (
-                  <Card key={post.id}>
-                    <CardContent className="p-4">
-                      <p className="mb-3">{post.content}</p>
-                      <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <span>{post.timestamp}</span>
-                        <div className="flex space-x-4">
-                          <span>{post.likes} likes</span>
-                          <span>{post.comments} comments</span>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  ))
-                ) : (
-                  <p className="text-muted-foreground text-center py-4">No posts yet</p>
-                )}
-              </TabsContent>
-            </div>
-          </Tabs>
+                      </CardContent>
+                    </Card>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground text-center py-4">No posts yet</p>
+                  )}
+                </TabsContent>
+              </div>
+            </Tabs>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -1897,6 +1904,341 @@ export const SkillsManagementModal = ({ isOpen, onClose }) => {
             Save Skills
           </Button>
         </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Swap Request Modal
+export const SwapRequestModal = ({ isOpen, onClose, selectedUser }) => {
+  const { user, refreshUserProfile } = useAuth();
+  const [isLoadingSkills, setIsLoadingSkills] = useState(false);
+  const [formData, setFormData] = useState({
+    skillOffered: '',
+    skillRequested: '',
+    message: '',
+    format: 'VIRTUAL',
+    duration: 60,
+    priority: 'MEDIUM',
+    proposedSchedule: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Default to tomorrow
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && selectedUser) {
+      // If user doesn't have skills, try to refresh the profile
+      if (!user?.skillsOffered || user.skillsOffered.length === 0) {
+        loadUserSkills();
+      }
+      
+      // Pre-fill with user's skills if available
+      if (user?.skillsOffered?.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          skillOffered: user.skillsOffered[0].skillName || ''
+        }));
+      }
+      
+      if (selectedUser.skillsDetailed?.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          skillRequested: selectedUser.skillsDetailed[0].skillName || ''
+        }));
+      }
+    }
+  }, [isOpen, selectedUser, user]);
+
+  const loadUserSkills = async () => {
+    if (!user) return;
+    
+    setIsLoadingSkills(true);
+    try {
+      await refreshUserProfile();
+    } catch (error) {
+      console.error('Error loading user skills:', error);
+      // Error is handled gracefully in AuthContext, no need to show error to user
+    } finally {
+      setIsLoadingSkills(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.skillOffered || !formData.skillRequested || !formData.message) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      
+      const swapData = {
+        receiverId: selectedUser.id,
+        skillOffered: formData.skillOffered,
+        skillRequested: formData.skillRequested,
+        message: formData.message,
+        proposedSchedule: formData.proposedSchedule,
+        format: formData.format,
+        duration: Number(formData.duration),
+        priority: formData.priority
+      };
+
+      console.log('Sending swap request data:', swapData);
+
+      const response = await apiService.createSwapRequest(swapData);
+      
+      toast.success('Swap request sent successfully!');
+      onClose();
+      
+      // Reset form
+      setFormData({
+        skillOffered: '',
+        skillRequested: '',
+        message: '',
+        format: 'VIRTUAL',
+        duration: 60,
+        priority: 'MEDIUM',
+        proposedSchedule: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // Default to tomorrow
+      });
+      
+    } catch (error) {
+      console.error('Error creating swap request:', error);
+      // Show specific validation errors if available
+      if (error.message === 'Validation failed' && error.details) {
+        const errorMessages = error.details.map(detail => detail.msg).join(', ');
+        toast.error(`Validation failed: ${errorMessages}`);
+      } else {
+        toast.error('Failed to send swap request. Please try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  if (!selectedUser) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Request Skill Swap</DialogTitle>
+          <DialogDescription>
+            Send a swap request to {selectedUser.name}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* User Info */}
+          <div className="flex items-center space-x-4 p-4 bg-muted/50 rounded-lg">
+            <Avatar className="h-12 w-12">
+              <AvatarImage src={selectedUser.profilePhoto} />
+              <AvatarFallback>{selectedUser.name[0]}</AvatarFallback>
+            </Avatar>
+            <div>
+              <h3 className="font-semibold">{selectedUser.name}</h3>
+              <p className="text-sm text-muted-foreground">{selectedUser.location}</p>
+              <div className="flex items-center mt-1">
+                <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
+                <span className="text-sm">{selectedUser.rating || 0} ({selectedUser.reviewCount || 0} reviews)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Skills Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="skillOffered">Skill You'll Offer *</Label>
+              <Select 
+                value={formData.skillOffered} 
+                onValueChange={(value) => handleInputChange('skillOffered', value)}
+                disabled={isLoadingSkills}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={
+                    isLoadingSkills 
+                      ? "Loading your skills..." 
+                      : user?.skillsOffered?.length > 0 
+                        ? "Select your skill" 
+                        : "No skills available"
+                  } />
+                </SelectTrigger>
+                <SelectContent>
+                  {isLoadingSkills ? (
+                    <div className="flex items-center justify-center p-4">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <span>Loading skills...</span>
+                    </div>
+                  ) : user?.skillsOffered?.length > 0 ? (
+                    user.skillsOffered?.map((skill) => (
+                      <SelectItem key={skill.id} value={skill.skillName}>
+                        {skill.skillName} ({skill.level})
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-muted-foreground">
+                      <p>No skills available</p>
+                      <p className="text-sm">Add skills to your profile first</p>
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+              {!isLoadingSkills && (!user?.skillsOffered || user.skillsOffered.length === 0) && (
+                <p className="text-sm text-amber-600">
+                  You need to add skills to your profile before making swap requests.
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="skillRequested">Skill You Want to Learn *</Label>
+              <Select 
+                value={formData.skillRequested} 
+                onValueChange={(value) => handleInputChange('skillRequested', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={
+                    selectedUser?.skillsDetailed?.length > 0 
+                      ? "Select skill to learn" 
+                      : "No skills available from this user"
+                  } />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedUser?.skillsDetailed?.length > 0 ? (
+                    selectedUser.skillsDetailed?.map((skill) => (
+                      <SelectItem key={skill.skillName} value={skill.skillName}>
+                        {skill.skillName} ({skill.level})
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-muted-foreground">
+                      <p>No skills available</p>
+                      <p className="text-sm">This user hasn't added any skills yet</p>
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+              {selectedUser && (!selectedUser.skillsDetailed || selectedUser.skillsDetailed.length === 0) && (
+                <p className="text-sm text-amber-600">
+                  This user hasn't added any skills to their profile yet.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Message */}
+          <div className="space-y-2">
+            <Label htmlFor="message">Message *</Label>
+            <Textarea
+              id="message"
+              placeholder={`Hi ${selectedUser.name}, I'd love to learn ${formData.skillRequested} from you in exchange for ${formData.skillOffered} tutoring.`}
+              value={formData.message}
+              onChange={(e) => handleInputChange('message', e.target.value)}
+              rows={4}
+              required
+            />
+          </div>
+
+          {/* Session Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="proposedSchedule">Proposed Schedule *</Label>
+              <Input
+                type="datetime-local"
+                id="proposedSchedule"
+                value={formData.proposedSchedule.slice(0, 16)} // Format for datetime-local input
+                onChange={(e) => handleInputChange('proposedSchedule', e.target.value + ':00.000Z')}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="format">Format</Label>
+              <Select 
+                value={formData.format} 
+                onValueChange={(value) => handleInputChange('format', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="VIRTUAL">Virtual</SelectItem>
+                  <SelectItem value="IN_PERSON">In Person</SelectItem>
+                  <SelectItem value="HYBRID">Hybrid</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="duration">Duration (minutes)</Label>
+              <Select 
+                value={formData.duration.toString()} 
+                onValueChange={(value) => handleInputChange('duration', parseInt(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="30">30 minutes</SelectItem>
+                  <SelectItem value="60">1 hour</SelectItem>
+                  <SelectItem value="90">1.5 hours</SelectItem>
+                  <SelectItem value="120">2 hours</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority</Label>
+              <Select 
+                value={formData.priority} 
+                onValueChange={(value) => handleInputChange('priority', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="LOW">Low</SelectItem>
+                  <SelectItem value="MEDIUM">Medium</SelectItem>
+                  <SelectItem value="HIGH">High</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                'Send Swap Request'
+              )}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

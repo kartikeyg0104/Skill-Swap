@@ -121,6 +121,10 @@ class ApiService {
   }
 
   // User methods
+  async getCurrentUser() {
+    return await this.request('/auth/me');
+  }
+
   async getUserProfile() {
     return await this.request('/users/profile');
   }
@@ -380,6 +384,10 @@ class ApiService {
   // Analytics methods
   async getUserAnalytics() {
     return await this.request('/analytics/user');
+  }
+
+  async getDashboardAnalytics() {
+    return await this.request('/analytics/dashboard');
   }
 
   async getPlatformStats() {

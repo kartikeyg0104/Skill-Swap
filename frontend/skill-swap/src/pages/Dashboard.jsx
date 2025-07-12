@@ -66,13 +66,13 @@ const Dashboard = () => {
       setIsLoading(true);
       
       // Fetch multiple data sources in parallel
-      const [swapRequestsResponse, userAnalyticsResponse] = await Promise.all([
+      const [swapRequestsResponse, dashboardAnalyticsResponse] = await Promise.all([
         apiService.getSwapRequests({ type: 'all', status: 'all', limit: 5 }),
-        apiService.getUserAnalytics()
+        apiService.getDashboardAnalytics()
       ]);
       
       setSwapRequests(swapRequestsResponse.swapRequests || []);
-      setDashboardData(userAnalyticsResponse);
+      setDashboardData(dashboardAnalyticsResponse?.summary || dashboardAnalyticsResponse || {});
       
       // Generate recent activity from swap requests
       const activity = (swapRequestsResponse.swapRequests || []).map(request => ({
