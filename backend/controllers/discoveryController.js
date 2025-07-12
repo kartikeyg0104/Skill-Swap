@@ -276,10 +276,175 @@ const getSkillsByCategory = async (req, res) => {
   }
 };
 
+// Get users for discovery page with enhanced formatting
+const getDiscoveryUsers = async (req, res) => {
+  try {
+    const { 
+      search = '', 
+      location, 
+      skillLevel, 
+      category,
+      page = 1,
+      limit = 12
+    } = req.query;
+
+    const skip = (page - 1) * limit;
+    const take = parseInt(limit);
+
+    // Build search conditions
+    const whereConditions = {
+      AND: [
+        { isPublic: true },
+        { status: 'ACTIVE' }
+      ]
+    };
+
+    // Search in name, bio, and skills
+    if (search) {
+      whereConditions.AND.push({
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { bio: { contains: search, mode: 'insensitive' } },
+          { skillsOffered: { some: { skillName: { contains: search, mode: 'insensitive' } } } }
+        ]
+      });
+    }
+
+    // Location filter
+    if (location) {
+      whereConditions.AND.push({
+        location: { contains: location, mode: 'insensitive' }
+      });
+    }
+
+    // Skill level filter
+    if (skillLevel) {
+      whereConditions.AND.push({
+        skillsOffered: { some: { level: skillLevel } }
+      });
+    }
+
+    // Category filter
+    if (category) {
+      whereConditions.AND.push({
+        skillsOffered: { some: { category: { contains: category, mode: 'insensitive' } } }
+      });
+    }
+
+    const users = await prisma.user.findMany({
+      where: whereConditions,
+      include: {
+        skillsOffered: {
+          select: {
+            skillName: true,
+            level: true,
+            category: true
+          }
+        },
+        skillsWanted: {
+          select: {
+            skillName: true,
+            priority: true,
+            targetLevel: true
+          }
+        },
+        reputation: {
+          select: {
+            overallRating: true,
+            totalRatings: true
+          }
+        },
+        _count: {
+          select: {
+            reviewsReceived: true,
+            swapRequestsReceived: { where: { status: 'COMPLETED' } }
+          }
+        }
+      },
+      skip,
+      take,
+      orderBy: [
+        { reputation: { overallRating: 'desc' } },
+        { createdAt: 'desc' }
+      ]
+    });
+
+    // Format users for frontend
+    const formattedUsers = users.map(user => ({
+      id: user.id,
+      name: user.name,
+      location: user.location,
+      bio: user.bio,
+      profilePhoto: user.profilePhoto,
+      isVerified: user.isVerified,
+      rating: user.reputation?.overallRating || 0,
+      reviewCount: user._count.reviewsReceived,
+      completedSwaps: user._count.swapRequestsReceived,
+      skills: user.skillsOffered.map(skill => skill.skillName),
+      skillsDetailed: user.skillsOffered,
+      seeking: user.skillsWanted.map(skill => skill.skillName),
+      seekingDetailed: user.skillsWanted,
+      memberSince: user.createdAt
+    }));
+
+    const totalUsers = await prisma.user.count({ where: whereConditions });
+
+    res.json({
+      users: formattedUsers,
+      pagination: {
+        page: parseInt(page),
+        limit: take,
+        total: totalUsers,
+        totalPages: Math.ceil(totalUsers / take),
+        hasMore: skip + take < totalUsers
+      }
+    });
+  } catch (error) {
+    console.error('Get discovery users error:', error);
+    res.status(500).json({ error: 'Failed to get discovery users' });
+  }
+};
+
+// Get popular skill categories for discovery filters
+const getPopularCategories = async (req, res) => {
+  try {
+    const categories = await prisma.skillOffered.groupBy({
+      by: ['category'],
+      _count: {
+        category: true
+      },
+      where: {
+        user: {
+          isPublic: true,
+          status: 'ACTIVE'
+        }
+      },
+      orderBy: {
+        _count: {
+          category: 'desc'
+        }
+      },
+      take: 10
+    });
+
+    const formattedCategories = categories.map(cat => ({
+      name: cat.category,
+      count: cat._count.category
+    }));
+
+    res.json({ categories: formattedCategories });
+  } catch (error) {
+    console.error('Get popular categories error:', error);
+    res.status(500).json({ error: 'Failed to get popular categories' });
+  }
+};
+
 module.exports = {
   searchUsers,
   getSkillSuggestions,
   getFeaturedUsers,
   getUserProfile,
-  getSkillsByCategory
+  getSkillsByCategory,
+  getDiscoveryUsers,
+  getPopularCategories
 };

@@ -59,6 +59,33 @@ backend/
 http://localhost:3001/api
 ```
 
+### Social Community Features
+```
+POST /api/social/posts                    - Create new post
+GET  /api/social/feed                     - Get personalized feed
+GET  /api/social/posts/public            - Get public feed
+POST /api/social/posts/:postId/like      - Like/unlike post
+POST /api/social/posts/:postId/bookmark  - Bookmark/unbookmark post
+POST /api/social/posts/:postId/comments  - Add comment to post
+GET  /api/social/posts/:postId/comments  - Get post comments
+POST /api/social/users/:userId/follow    - Follow/unfollow user
+GET  /api/social/users/:userId/followers - Get user followers
+GET  /api/social/users/:userId/following - Get user following
+GET  /api/social/users/:userId/stats     - Get user social stats
+GET  /api/social/suggested-users         - Get suggested users to follow
+GET  /api/social/trending                - Get trending topics/hashtags
+```
+
+### Enhanced Discovery
+```
+GET  /api/discovery/users                - Get users for discovery (enhanced)
+GET  /api/discovery/categories           - Get popular skill categories
+GET  /api/discovery/search              - Search users/skills (original)
+GET  /api/discovery/suggestions         - Get skill suggestions
+GET  /api/discovery/featured            - Get featured users
+GET  /api/discovery/profile/:userId     - Get user profile (public)
+```
+
 ### Authentication
 
 **Register User**
@@ -573,6 +600,296 @@ Response (200 OK):
   "verificationDate": "2024-01-15T13:15:00.000Z",
   "status": "VERIFIED",
   "message": "Your account is verified"
+}
+```
+
+### Social Community Features
+
+**Create Post**
+```
+POST /api/social/posts
+Authorization: Bearer <token>
+```
+
+Request:
+```json
+{
+  "content": "Just joined Skill Swap! Looking forward to learning and sharing knowledge. #SkillSwap #Learning #Community",
+  "hashtags": ["SkillSwap", "Learning", "Community"]
+}
+```
+
+Response (201 Created):
+```json
+{
+  "message": "Post created successfully",
+  "post": {
+    "id": 1,
+    "authorId": 3,
+    "content": "Just joined Skill Swap! Looking forward to learning and sharing knowledge. #SkillSwap #Learning #Community",
+    "imageUrl": null,
+    "hashtags": ["SkillSwap", "Learning", "Community"],
+    "isPublic": true,
+    "createdAt": "2024-01-15T07:46:03.969Z",
+    "author": {
+      "id": 3,
+      "name": "Test User",
+      "profilePhoto": null,
+      "isVerified": false
+    },
+    "likes": 0,
+    "comments": 0,
+    "shares": 0,
+    "liked": false,
+    "bookmarked": false
+  }
+}
+```
+
+**Get Public Feed**
+```
+GET /api/social/posts/public?page=1&limit=10
+Authorization: Bearer <token>
+```
+
+Response (200 OK):
+```json
+{
+  "posts": [
+    {
+      "id": 1,
+      "content": "Just joined Skill Swap! Looking forward to learning and sharing knowledge. #SkillSwap #Learning #Community",
+      "hashtags": ["SkillSwap", "Learning", "Community"],
+      "author": {
+        "id": 3,
+        "name": "Test User",
+        "profilePhoto": null,
+        "isVerified": false
+      },
+      "likes": 1,
+      "comments": 1,
+      "shares": 0,
+      "liked": true,
+      "bookmarked": false,
+      "timestamp": "2h",
+      "createdAt": "2024-01-15T07:46:03.969Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "hasMore": false
+  }
+}
+```
+
+**Like/Unlike Post**
+```
+POST /api/social/posts/:postId/like
+Authorization: Bearer <token>
+```
+
+Response (200 OK):
+```json
+{
+  "message": "Post liked",
+  "liked": true,
+  "likesCount": 1
+}
+```
+
+**Add Comment**
+```
+POST /api/social/posts/:postId/comments
+Authorization: Bearer <token>
+```
+
+Request:
+```json
+{
+  "content": "Welcome to the community! Looking forward to connecting with you."
+}
+```
+
+Response (201 Created):
+```json
+{
+  "message": "Comment added successfully",
+  "comment": {
+    "id": 1,
+    "postId": 1,
+    "authorId": 3,
+    "content": "Welcome to the community! Looking forward to connecting with you.",
+    "author": {
+      "id": 3,
+      "name": "Test User",
+      "profilePhoto": null
+    },
+    "timestamp": "now",
+    "createdAt": "2024-01-15T07:48:04.957Z"
+  }
+}
+```
+
+**Follow/Unfollow User**
+```
+POST /api/social/users/:userId/follow
+Authorization: Bearer <token>
+```
+
+Response (200 OK):
+```json
+{
+  "message": "User followed",
+  "isFollowing": true,
+  "followersCount": 1,
+  "followingCount": 5
+}
+```
+
+**Get User Social Stats**
+```
+GET /api/social/users/:userId/stats
+Authorization: Bearer <token>
+```
+
+Response (200 OK):
+```json
+{
+  "postsCount": 15,
+  "followersCount": 42,
+  "followingCount": 28,
+  "isFollowing": true
+}
+```
+
+**Get Trending Topics**
+```
+GET /api/social/trending
+Authorization: Bearer <token>
+```
+
+Response (200 OK):
+```json
+{
+  "topics": [
+    {
+      "tag": "SkillSwap",
+      "posts": "1 posts"
+    },
+    {
+      "tag": "Community",
+      "posts": "1 posts"
+    },
+    {
+      "tag": "Learning",
+      "posts": "1 posts"
+    }
+  ]
+}
+```
+
+**Get Suggested Users**
+```
+GET /api/social/suggested-users
+Authorization: Bearer <token>
+```
+
+Response (200 OK):
+```json
+{
+  "suggestedUsers": [
+    {
+      "id": 5,
+      "name": "Sarah Johnson",
+      "profilePhoto": null,
+      "bio": "UX Designer passionate about learning new technologies",
+      "skillsOffered": [
+        {"skillName": "UI/UX Design"},
+        {"skillName": "Figma"},
+        {"skillName": "User Research"}
+      ],
+      "mutualConnections": 0,
+      "followersCount": 12,
+      "followingCount": 8
+    }
+  ]
+}
+```
+
+### Enhanced Discovery
+
+**Get Users for Discovery**
+```
+GET /api/discovery/users?search=javascript&location=new%20york&page=1&limit=12
+Authorization: Bearer <token>
+```
+
+Response (200 OK):
+```json
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Updated Test User",
+      "location": "San Francisco, CA",
+      "bio": "I am a skilled developer looking to swap knowledge",
+      "profilePhoto": null,
+      "isVerified": true,
+      "rating": 4.8,
+      "reviewCount": 15,
+      "completedSwaps": 12,
+      "skills": ["JavaScript", "React", "Node.js"],
+      "skillsDetailed": [
+        {
+          "skillName": "JavaScript",
+          "level": "ADVANCED",
+          "category": "Technology"
+        }
+      ],
+      "seeking": ["Python", "Machine Learning"],
+      "seekingDetailed": [
+        {
+          "skillName": "Python",
+          "priority": "HIGH",
+          "targetLevel": "INTERMEDIATE"
+        }
+      ],
+      "memberSince": "2024-01-12T06:01:19.844Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 12,
+    "total": 1,
+    "totalPages": 1,
+    "hasMore": false
+  }
+}
+```
+
+**Get Popular Categories**
+```
+GET /api/discovery/categories
+```
+
+Response (200 OK):
+```json
+{
+  "categories": [
+    {
+      "name": "Technology",
+      "count": 15
+    },
+    {
+      "name": "Design",
+      "count": 8
+    },
+    {
+      "name": "Business",
+      "count": 5
+    }
+  ]
 }
 ```
 

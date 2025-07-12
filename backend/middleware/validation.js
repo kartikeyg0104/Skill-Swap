@@ -317,6 +317,33 @@ const validateEmailCampaign = [
   handleValidationErrors
 ];
 
+// Validation for social community features
+const validatePost = [
+  body('content')
+    .notEmpty()
+    .withMessage('Post content is required')
+    .isLength({ min: 1, max: 280 })
+    .withMessage('Post content must be between 1 and 280 characters'),
+  body('hashtags')
+    .optional()
+    .isArray()
+    .withMessage('Hashtags must be an array'),
+  body('hashtags.*')
+    .optional()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('Each hashtag must be between 1 and 50 characters'),
+  handleValidationErrors
+];
+
+const validateComment = [
+  body('content')
+    .notEmpty()
+    .withMessage('Comment content is required')
+    .isLength({ min: 1, max: 280 })
+    .withMessage('Comment content must be between 1 and 280 characters'),
+  handleValidationErrors
+];
+
 module.exports = {
   validateRegistration,
   validateLogin,
@@ -335,5 +362,7 @@ module.exports = {
   validateBroadcast,
   validateNotification,
   validateEmailCampaign,
-  handleValidationErrors
+  handleValidationErrors,
+  validatePost,
+  validateComment
 };
